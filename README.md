@@ -20,7 +20,7 @@ crewai install
 ```
 ### Customizing
 
-**Add your `OPENAI_API_KEY` into the `.env` file**
+**Add your `GEMINI_API_KEY` into the `.env` file**
 
 - Modify `src/social_media_blog/config/agents.yaml` to define your agents
 - Modify `src/social_media_blog/config/tasks.yaml` to define your tasks
@@ -37,7 +37,6 @@ $ crewai run
 
 This command initializes the social_media_blog Crew, assembling the agents and assigning them tasks as defined in your configuration.
 
-This example, unmodified, will run the create a `report.md` file with the output of a research on LLMs in the root folder.
 
 ## Understanding Your Crew
 

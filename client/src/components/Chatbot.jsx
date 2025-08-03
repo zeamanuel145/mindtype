@@ -8,7 +8,7 @@ const Chatbot = () => {
   const [messages, setMessages] = useState([
     {
       id: 1,
-      text: "Hi! I'm MindType's AI blog assistant. What topic would you like to generate a blog post on today?",
+      text: "Hi! I'm MindType's AI blog assistant. What topic would you like to generate a blog post on today",
       sender: "bot",
       timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
     },
