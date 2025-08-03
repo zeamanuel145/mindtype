@@ -1,0 +1,14 @@
+crewai
+crewai-tools
+langchain
+langchain-pinecone
+fastapi
+python-dotenv
+pydantic
+uvicorn
+pinecone
+google-generativeai
+langchain-google-genai
+serpapi
+duckduckgo-search
+slowapi
