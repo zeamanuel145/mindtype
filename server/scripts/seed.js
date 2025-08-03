@@ -1,7 +1,7 @@
 const mongoose = require("mongoose")
 const bcrypt = require("bcryptjs")
-const User = require("../models/User")
-const Post = require("../models/Post")
+const User = require("../server/models/User")
+const Post = require("../server/models/Post")
 require("dotenv").config()
 
 const seedData = async () => {
