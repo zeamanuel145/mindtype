@@ -28,6 +28,7 @@ This is a FastAPI-based backend service for the MindType AI-powered blog assista
 ### 1. Clone the Repository
 
 ```bash
+
 git clone https://github.com/zeamanuel145/mindtype.git
 cd mindtype-social-media-blog
 ```

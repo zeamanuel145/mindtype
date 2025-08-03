@@ -40,9 +40,9 @@ Create a .env file and set your keys:
 ```env
 GOOGLE_API_KEY=your_google_api_key
 ```
-
 ### 4. ⚙️ Configuration
 You can define agents and tasks here:
+
 
 - src/social_media_blog/config/agents.yaml – agent roles and goals
 
@@ -72,6 +72,7 @@ uvicorn src.social_media_blog.app:app --host 0.0.0.0 --port 8000
 ## 🧠 API Endpoint
 POST /api/generate-blog
 ```json
+
 
 {
   "topic": "AI in Healthcare",
