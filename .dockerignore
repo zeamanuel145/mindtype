@@ -1,0 +1,29 @@
+# Ignore version control and IDE-specific files
+.git
+.gitignore
+.vscode/
+
+# Ignore Python-specific build artifacts and caches
+__pycache__/
+*.pyc
+
+# Ignore local virtual environment and Poetry-related files
+.venv/
+poetry.lock
+
+# Ignore logs, reports, and other project-specific outputs
+*.log
+report.md
+final_blog_post.md
+knowledge/user_preference.txt
+
+# Ignore test files and directories as they are not needed for production
+tests/
+
+# Security-sensitive files
+# It's critical to not copy local environment variables into the image.
+# They should be passed at runtime.
+.env
+
+# Ignore unnecessary documentation or source code that isn't the core application
+README.md
