@@ -1,5 +1,5 @@
 # Use a slim Python image for a smaller container size
-FROM python:3.11-slim
+FROM python:3.11.8-slim
 
 # Set the working directory in the container
 WORKDIR /app
@@ -9,11 +9,8 @@ WORKDIR /app
 COPY pyproject.toml .
 COPY requirements.txt .
 
-# Install poetry and then install dependencies
-# We use poetry because your project structure indicates it
-RUN pip install --no-cache-dir poetry && \
-    poetry config virtualenvs.create false && \
-    poetry install --no-root --only main
+# Install dependencies using pip
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy the rest of the application code
 COPY . .

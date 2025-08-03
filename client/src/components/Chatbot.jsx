@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef, useEffect } from "react"
 import { MessageCircle, X, Send, Bot, User } from "lucide-react"
 
 const Chatbot = () => {
@@ -8,59 +8,20 @@ const Chatbot = () => {
   const [messages, setMessages] = useState([
     {
       id: 1,
-      text: "Hi! I'm MindType's AI assistant. How can I help you today?",
+      text: "Hi! I'm MindType's AI blog assistant. What topic would you like to generate a blog post on today?",
       sender: "bot",
       timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
     },
   ])
   const [inputMessage, setInputMessage] = useState("")
   const [isTyping, setIsTyping] = useState(false)
+  const messagesEndRef = useRef(null)
 
-  const botResponses = {
-    greeting: [
-      "Hello! Welcome to MindType. How can I assist you today?",
-      "Hi there! I'm here to help you with your blogging journey.",
-      "Hey! Ready to create some amazing content?",
-    ],
-    help: [
-      "I can help you with writing tips, content ideas, or navigating the platform. What would you like to know?",
-      "Here are some things I can help with: writing inspiration, blog post ideas, platform features, or general questions.",
-      "Need help with something specific? I'm here to assist with your blogging needs!",
-    ],
-    writing: [
-      "Here are some writing tips: Start with an engaging hook, write in your authentic voice, and always provide value to your readers.",
-      "For better writing: Keep paragraphs short, use active voice, and don't forget to edit your work before publishing.",
-      "Writing tip: Read your content aloud - if it sounds natural when spoken, it'll read well too!",
-    ],
-    ideas: [
-      "Here are some blog post ideas: Share your personal experiences, create how-to guides, review products you love, or discuss industry trends.",
-      "Content ideas: Write about lessons you've learned, interview interesting people, or create lists of useful resources.",
-      "Try these topics: Behind-the-scenes of your work, common mistakes in your field, or predictions for the future.",
-    ],
-    default: [
-      "That's an interesting question! Could you tell me more about what you're looking for?",
-      "I'd love to help! Can you provide a bit more detail about what you need?",
-      "Great question! What specific aspect would you like me to focus on?",
-    ],
-  }
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+  }, [messages])
 
-  const getBotResponse = (userMessage) => {
-    const message = userMessage.toLowerCase()
-
-    if (message.includes("hello") || message.includes("hi") || message.includes("hey")) {
-      return botResponses.greeting[Math.floor(Math.random() * botResponses.greeting.length)]
-    } else if (message.includes("help") || message.includes("assist")) {
-      return botResponses.help[Math.floor(Math.random() * botResponses.help.length)]
-    } else if (message.includes("write") || message.includes("writing") || message.includes("blog")) {
-      return botResponses.writing[Math.floor(Math.random() * botResponses.writing.length)]
-    } else if (message.includes("idea") || message.includes("topic") || message.includes("content")) {
-      return botResponses.ideas[Math.floor(Math.random() * botResponses.ideas.length)]
-    } else {
-      return botResponses.default[Math.floor(Math.random() * botResponses.default.length)]
-    }
-  }
-
-  const handleSendMessage = () => {
+  const handleSendMessage = async () => {
     if (!inputMessage.trim()) return
 
     const userMessage = {
@@ -74,23 +35,45 @@ const Chatbot = () => {
     setInputMessage("")
     setIsTyping(true)
 
-    // Simulate bot typing delay
-    setTimeout(
-      () => {
-        const botMessage = {
-          id: messages.length + 2,
-          text: getBotResponse(inputMessage),
-          sender: "bot",
-          timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-        }
-        setMessages((prev) => [...prev, botMessage])
-        setIsTyping(false)
-      },
-      1000 + Math.random() * 1000,
-    ) // Random delay between 1-2 seconds
+    try {
+      const response = await fetch("http://localhost:8000/api/generate-blog", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ topic: inputMessage }),
+      })
+
+      if (!response.ok) {
+        throw new Error(`API error: ${response.statusText}`)
+      }
+
+      const data = await response.json()
+      const botResponseText = data.content || "An error occurred generating the blog post. Please try again."
+
+      const botMessage = {
+        id: messages.length + 2,
+        text: botResponseText,
+        sender: "bot",
+        timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      }
+
+      setMessages((prev) => [...prev, botMessage])
+    } catch (error) {
+      console.error("Failed to fetch bot response:", error)
+      const errorMessage = {
+        id: messages.length + 2,
+        text: "I'm sorry, I couldn't connect to the server to generate a response. Please check if the backend is running.",
+        sender: "bot",
+        timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      }
+      setMessages((prev) => [...prev, errorMessage])
+    } finally {
+      setIsTyping(false)
+    }
   }
 
-  const handleKeyPress = (e) => {
+  const handleKeyDown = (e) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault()
       handleSendMessage()
@@ -99,7 +82,6 @@ const Chatbot = () => {
 
   return (
     <>
-      {/* Chat Button */}
       <div className="fixed bottom-6 right-6 z-50">
         <button
           onClick={() => setIsOpen(!isOpen)}
@@ -113,10 +95,8 @@ const Chatbot = () => {
         </button>
       </div>
 
-      {/* Chat Window */}
       {isOpen && (
         <div className="fixed bottom-24 right-6 w-80 h-96 bg-white rounded-lg shadow-2xl border z-50 flex flex-col">
-          {/* Header */}
           <div className="bg-blue-600 text-white p-4 rounded-t-lg flex items-center justify-between">
             <div className="flex items-center space-x-3">
               <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
@@ -132,7 +112,6 @@ const Chatbot = () => {
             </button>
           </div>
 
-          {/* Messages */}
           <div className="flex-1 overflow-y-auto p-4 space-y-4">
             {messages.map((message) => (
               <div key={message.id} className={`flex ${message.sender === "user" ? "justify-end" : "justify-start"}`}>
@@ -155,7 +134,7 @@ const Chatbot = () => {
                       message.sender === "user" ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-800"
                     }`}
                   >
-                    <p className="text-sm">{message.text}</p>
+                    <p className="text-sm whitespace-pre-wrap">{message.text}</p>
                     <p className={`text-xs mt-1 ${message.sender === "user" ? "text-blue-100" : "text-gray-500"}`}>
                       {message.timestamp}
                     </p>
@@ -163,8 +142,8 @@ const Chatbot = () => {
                 </div>
               </div>
             ))}
+            <div ref={messagesEndRef} />
 
-            {/* Typing Indicator */}
             {isTyping && (
               <div className="flex justify-start">
                 <div className="flex items-start space-x-2 max-w-xs">
@@ -189,15 +168,14 @@ const Chatbot = () => {
             )}
           </div>
 
-          {/* Input */}
           <div className="p-4 border-t">
             <div className="flex space-x-2">
               <input
                 type="text"
                 value={inputMessage}
                 onChange={(e) => setInputMessage(e.target.value)}
-                onKeyPress={handleKeyPress}
-                placeholder="Type your message..."
+                onKeyDown={handleKeyDown}
+                placeholder="Type a topic to generate a blog post..."
                 className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
               />
               <button
