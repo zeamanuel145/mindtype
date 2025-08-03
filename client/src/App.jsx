@@ -3,6 +3,7 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom"
 import { AuthProvider } from "./context/AuthContext"
 import Header from "./components/Header"
+import ChatBot from "./components/Chatbot"
 import ProtectedRoute from "./components/ProtectedRoute"
 import Home from "./pages/Home"
 import Login from "./pages/Login"
@@ -29,6 +30,7 @@ function App() {
                 <>
                   <Header />
                   <Home />
+                  <ChatBot />
                 </>
               }
             />
@@ -42,6 +44,7 @@ function App() {
                 <ProtectedRoute>
                   <Header />
                   <Dashboard />
+                  <ChatBot />
                 </ProtectedRoute>
               }
             />
@@ -51,6 +54,7 @@ function App() {
                 <ProtectedRoute>
                   <Header />
                   <Explore />
+                  <ChatBot />
                 </ProtectedRoute>
               }
             />
@@ -60,6 +64,7 @@ function App() {
                 <ProtectedRoute>
                   <Header />
                   <MyPosts />
+                  <ChatBot />
                 </ProtectedRoute>
               }
             />
@@ -69,6 +74,7 @@ function App() {
                 <ProtectedRoute>
                   <Header />
                   <Profile />
+                  <ChatBot />
                 </ProtectedRoute>
               }
             />
@@ -78,6 +84,7 @@ function App() {
                 <ProtectedRoute>
                   <Header />
                   <CreatePost />
+                  <ChatBot />
                 </ProtectedRoute>
               }
             />
@@ -87,6 +94,7 @@ function App() {
                 <ProtectedRoute>
                   <Header />
                   <EditPost />
+                  <ChatBot />
                 </ProtectedRoute>
               }
             />
@@ -96,6 +104,7 @@ function App() {
                 <ProtectedRoute>
                   <Header />
                   <PostDetail />
+                  <ChatBot />
                 </ProtectedRoute>
               }
             />
