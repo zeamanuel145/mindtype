@@ -5,7 +5,6 @@ from dotenv import load_dotenv
 from .crew import SocialMediaBlog
 from .chat_models import *
 import logging
-import os
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
@@ -23,7 +22,7 @@ limiter = Limiter(key_func=get_remote_address, default_limits=["10/minute"])
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    app.state.crew = SocialMediaBlog().crew()
+    app.state.crew_instance = SocialMediaBlog().crew()
     logger.info("Crew initialized successfully")
 
     yield
@@ -50,48 +49,48 @@ app.add_middleware(
 @app.get("/")
 async def root():
     return {"message": "Loaded successfully!"}
-@app.post("/api/generate-blog", response_model=BlogResponse)
-async def generate_blog(request: BlogRequest):
-    try:
-        logger.info(f"Received request for blog generation. Topic: '{request.topic}', Tone: '{request.tone}'")
 
-        if not request.topic and request.topic.lower() != "auto-generate-topic":
+@app.post("/api/generate-blog", response_model=BlogResponse)
+@limiter.limit("5/minute")
+async def generate_blog(request: Request, body: BlogRequest):
+    try:
+        logger.info(f"Received request for blog generation. Topic: '{body.topic}', Tone: '{body.tone}'")
+
+        if not body.topic:
             raise HTTPException(status_code=400, detail="Topic cannot be empty.")
         
         inputs = {
-            'topic': request.topic,
-            'tone': request.tone,
-            'platform_guidelines': request.platform_guidelines,
+            'topic': body.topic,
+            'tone': body.tone,
+            'platform_guidelines': body.platform_guidelines,
             'current_year': 2025
         }
         
-        crew_instance = SocialMediaBlog().crew()
-        
-        # The kickoff method orchestrates the agents sequentially
-        final_output = crew_instance.kickoff(inputs=inputs)
-        
-        # Assuming the final output contains all generated data
-        # Your tasks.yaml saves to specific files, let's read from them
-        try:
-            with open("final_blog_post.md", "r") as f:
-                content = f.read()
-            with open("summary.md", "r") as f:
-                summary_data = f.read()
-        except FileNotFoundError:
-            logger.error("Output files not found after crew execution.")
-            raise HTTPException(status_code=500, detail="Crew execution failed to produce output files.")
+        crew_instance = app.state.crew_instance
+        result = crew_instance.kickoff(inputs=inputs)
 
-        # Parse summary data (assuming a simple format)
-        # This parsing logic can be more complex based on how your agent writes the summary
-        summary_lines = summary_data.split('\n')
-        meta_description = summary_lines[0] if summary_lines else ""
-        blog_preview = "\n".join(summary_lines[1:]) if len(summary_lines) > 1 else ""
+        # Ensure we always work with a dictionary
+        if hasattr(result, "dict"):
+            result = result.dict()
+        elif not isinstance(result, dict):
+            result = dict(result)
+
+        logger.debug(f"Crew output: {result}")
+
+        # Try getting structured blog output from known keys
+        output_data = result.get("summarizing_task") or result.get("reporting_task") or result.get("final_output") or result
+
+        if not isinstance(output_data, dict):
+            logger.error("Crew output missing expected fields.")
+            raise HTTPException(status_code=500, detail="Crew execution returned malformed output.")
+
+        blog_output = BlogOutput(**output_data)
 
         return BlogResponse(
             status="success",
-            content=content,
-            meta_description=meta_description,
-            blog_preview=blog_preview,
+            content=blog_output.blog_post,
+            meta_description=blog_output.meta_description,
+            blog_preview=blog_output.blog_preview,
         )
     
     except HTTPException as e:
@@ -99,7 +98,7 @@ async def generate_blog(request: BlogRequest):
         raise e
     except Exception as e:
         logger.error(f"An unexpected error occurred: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"An unexpected server error occurred: {e}")
+        raise HTTPException(status_code=500, detail=f"Server error: {e}")
 
 if __name__ == "__main__":
     import uvicorn

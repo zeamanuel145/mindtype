@@ -43,7 +43,6 @@ reporting_task:
     A well-organized report with an intro and full sections for each key point.
     Format in markdown (no code blocks).
   agent: writer_agent
-  output_file: "final_blog_post.md"
 
 summarizing_task:
   description: >
@@ -58,5 +57,4 @@ summarizing_task:
   expected_output: >
     A 3 to 5 paragraph executive summary, written in a clear and professional tone for business stakeholders.
   agent: summarizer_agent
-  output_file: 'summary.md'
 

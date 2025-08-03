@@ -8,6 +8,7 @@ from langchain_community.tools import DuckDuckGoSearchRun
 from langchain_core.tools import Tool
 from typing import List
 from content.pinecone_setup import knowledge_base
+from .chat_models import BlogOutput
 import os
 import logging
 
@@ -65,7 +66,6 @@ def duckduckgo_tool_func(query: str) -> str:
 
 def get_llm():
     try:
-        # Use crewai.LLM directly with the correct provider/model format
         return LLM(
             model="gemini/gemini-1.5-flash",
             api_key=os.getenv("GOOGLE_API_KEY"),
@@ -160,7 +160,7 @@ class SocialMediaBlog():
     def summarizing_task(self) -> Task:
         return Task(
             config=self.tasks_config['summarizing_task'], # type: ignore[index]
-            output_file='report.md'
+            output_pydantic_model = BlogOutput
         )
 
     @crew
