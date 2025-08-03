@@ -148,7 +148,6 @@ class SocialMediaBlog():
     def research_task(self) -> Task:
         return Task(
             config=self.tasks_config['research_task'], # type: ignore[index]
-            output_file='report.md'
         )
 
     @task
