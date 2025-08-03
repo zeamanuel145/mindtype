@@ -5,14 +5,34 @@ from dotenv import load_dotenv
 from .crew import SocialMediaBlog
 from .chat_models import *
 import logging
-
+import os
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
+from contextlib import asynccontextmanager
 
 logging.basicConfig(level=logging.
 INFO,format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 load_dotenv()
-app = FastAPI(title="AI Blog Post Generator")
+
+# Initializing the rate limiter
+limiter = Limiter(key_func=get_remote_address, default_limits=["10/minute"])
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    app.state.crew = SocialMediaBlog().crew()
+    logger.info("Crew initialized successfully")
+
+    yield
+
+
+app = FastAPI(title="AI Blog Post Generator", lifespan=lifespan)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_middleware(SlowAPIMiddleware)
 
 origins = [
     "*"
@@ -24,6 +44,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"]
 )
+
+
+
 @app.get("/")
 async def root():
     return {"message": "Loaded successfully!"}
