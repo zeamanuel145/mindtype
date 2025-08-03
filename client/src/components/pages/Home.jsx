@@ -2,7 +2,7 @@ import { Link } from "react-router-dom"
 import Footer from "../components/Footer"
 import { MessageCircle } from "lucide-react"
 
-const Home = ({ posts = [] }) => {
+const Home = ({ posts }) => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Hero Section */}
@@ -58,7 +58,7 @@ const Home = ({ posts = [] }) => {
               .map((post, index) => (
                 <Link
                   key={index}
-                  to={`/post/${post._id || post.id}`} // fallback for MongoDB or local data
+                  to={`/post/${post.id}`}
                   className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow border"
                 >
                   <img
