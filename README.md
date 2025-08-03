@@ -1,53 +1,112 @@
-# SocialMediaBlog Crew
+# MINDTYPE
 
-Welcome to the SocialMediaBlog Crew project, powered by [crewAI](https://crewai.com). This template is designed to help you set up a multi-agent AI system with ease, leveraging the powerful and flexible framework provided by crewAI. Our goal is to enable your agents to collaborate effectively on complex tasks, maximizing their collective intelligence and capabilities.
+A multi-agent AI system that collaborates to generate high-quality, SEO-friendly blog content for social media platforms using [crewAI](https://crewai.com), FastAPI, and tools like DuckDuckGo, Pinecone, and Gemini.
 
-## Installation
+## 🚀 Features
+- Multi-agent task delegation via CrewAI
+- Integration with Gemini (Google Generative AI)
+- DuckDuckGo and Pinecone-based contextual research
+- Rate-limited FastAPI backend
+- Structured blog output (title, meta, preview, full post)
+- Easy deployment via Docker and Render
 
-Ensure you have Python >=3.10 <3.14 installed on your system. This project uses [UV](https://docs.astral.sh/uv/) for dependency management and package handling, offering a seamless setup and execution experience.
+---
 
-First, if you haven't already, install uv:
+## 📦 Setup
+
+### 1. Python version
+Ensure you're using **Python 3.10–3.13** (UV requires <3.14):
 
 ```bash
+
+python3 --version
+
+```
+
+### 2. Clone and install dependencies
+```bash
+git clone https://github.com/zeamanuel145/mindtype.git
+cd social-media-blog-crew
+
+# Install uv if needed
 pip install uv
+
+# Install dependencies
+uv pip install -r requirements.txt
+
 ```
+### 3. Environment Setup
+Create a .env file and set your keys:
+```env
+GOOGLE_API_KEY=your_google_api_key
+```
+### 4. ⚙️ Configuration
+You can define agents and tasks here:
 
-Next, navigate to your project directory and install the dependencies:
 
-(Optional) Lock the dependencies and install them by using the CLI command:
+- src/social_media_blog/config/agents.yaml – agent roles and goals
+
+- src/social_media_blog/config/tasks.yaml – tasks agents collaborate on
+
+- src/social_media_blog/crew.py – logic that wires it all together
+
+### 5. 🧪 Running the API
+To launch your FastAPI server locally:
 ```bash
-crewai install
+
+uvicorn src.social_media_blog.app:app --reload
+
 ```
-### Customizing
+Then go to:
+📍 **http://localhost:8000/docs** to try it out via Swagger UI.
 
-**Add your `GEMINI_API_KEY` into the `.env` file**
-
-- Modify `src/social_media_blog/config/agents.yaml` to define your agents
-- Modify `src/social_media_blog/config/tasks.yaml` to define your tasks
-- Modify `src/social_media_blog/crew.py` to add your own logic, tools and specific args
-- Modify `src/social_media_blog/main.py` to add custom inputs for your agents and tasks
-
-## Running the Project
-
-To kickstart your crew of AI agents and begin task execution, run this from the root folder of your project:
-
+## 📤 Deployment on Render (Docker)
+1. Set up a new Web Service on Render.com
+2. Choose Docker as the environment
+3. Set start command to:
 ```bash
-$ crewai run
+uvicorn src.social_media_blog.app:app --host 0.0.0.0 --port 8000
+```
+4. Add your environment variables (GOOGLE_API_KEY, etc.)
+
+## 🧠 API Endpoint
+POST /api/generate-blog
+```json
+
+
+{
+  "topic": "AI in Healthcare",
+  "tone": "informative",
+  "platform_guidelines": "LinkedIn best practices"
+}
+
+```
+Returns: 
+```json
+{
+  "status": "success",
+  "content": "Full blog post...",
+  "meta_description": "AI is transforming the healthcare industry...",
+  "blog_preview": "Discover how AI is reshaping medical innovation..."
+}
 ```
 
-This command initializes the social_media_blog Crew, assembling the agents and assigning them tasks as defined in your configuration.
+## Project Structure
+```bash
 
+social_media_blog/
+├── app.py               # FastAPI app
+├── crew.py              # CrewAI integration
+├── chat_models.py       # Pydantic models
+├── config/
+│   ├── agents.yaml
+│   └── tasks.yaml
+├── content/
+│   └── pinecone_setup.py
+└── ...
 
-## Understanding Your Crew
+```
+## 👥 Authors
+- ## 👥 Author
 
-The social_media_blog Crew is composed of multiple AI agents, each with unique roles, goals, and tools. These agents collaborate on a series of tasks, defined in `config/tasks.yaml`, leveraging their collective skills to achieve complex objectives. The `config/agents.yaml` file outlines the capabilities and configurations of each agent in your crew.
-
-## Support
-
-For support, questions, or feedback regarding the SocialMediaBlog Crew or crewAI.
-- Visit our [documentation](https://docs.crewai.com)
-- Reach out to us through our [GitHub repository](https://github.com/joaomdmoura/crewai)
-- [Join our Discord](https://discord.com/invite/X4JWnZnxPb)
-- [Chat with our docs](https://chatg.pt/DWjSBZn)
-
-Let's create wonders together with the power and simplicity of crewAI.
+- [Eric Theuri](https://github.com/TheuriEric)
