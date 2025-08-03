@@ -40,8 +40,10 @@ Create a .env file and set your keys:
 ```env
 GOOGLE_API_KEY=your_google_api_key
 ```
+
 ### 4. ⚙️ Configuration
 You can define agents and tasks here:
+
 
 
 - src/social_media_blog/config/agents.yaml – agent roles and goals
@@ -55,8 +57,8 @@ To launch your FastAPI server locally:
 ```bash
 
 uvicorn src.social_media_blog.app:app --reload
-
 ```
+
 Then go to:
 📍 **http://localhost:8000/docs** to try it out via Swagger UI.
 
@@ -104,6 +106,7 @@ social_media_blog/
 ├── content/
 │   └── pinecone_setup.py
 └── ...
+
 
 ```
 ## 👥 Authors
