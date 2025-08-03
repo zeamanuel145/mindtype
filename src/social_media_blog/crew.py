@@ -1,11 +1,8 @@
-from crewai import Agent, Crew, Process, Task, LLM  # <-- LLM is now imported from crewai
+from crewai import Agent, Crew, Process, Task, LLM
 from crewai.project import CrewBase, agent, crew, task
 from crewai.agents.agent_builder.base_agent import BaseAgent
 from crewai.tools import tool
-# The following import is no longer needed:
-# from langchain_google_genai import ChatGoogleGenerativeAI 
 from langchain_community.tools import DuckDuckGoSearchRun
-from langchain_core.tools import Tool
 from typing import List
 from content.pinecone_setup import knowledge_base
 from .chat_models import BlogOutput
@@ -18,7 +15,6 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# --- Tools defined with @tool decorator ---
 
 @tool
 def rag_tool(query: str) -> str:
@@ -90,8 +86,8 @@ class SocialMediaBlog():
                 self.agents_config = yaml.safe_load(f)
             with open(os.path.join(config_dir, "tasks.yaml"), "r") as f:
                 self.tasks_config = yaml.safe_load(f)
+            logger.info("Configuration files loaded successfully")
         except Exception as e:
-            import logging
             logging.warning("Failed to load config files: %s", e)
             self.agents_config = {}
             self.tasks_config = {}
@@ -103,9 +99,7 @@ class SocialMediaBlog():
     def trend_hunter(self) -> Agent:
         return Agent(
             config=self.agents_config['trend_hunter'], # type: ignore[index]
-             tools=[
-            web_search_tool
-        ],
+            tools=[web_search_tool,duckduckgo_tool_func],
             verbose=True,
             llm=get_llm()
         )
@@ -114,9 +108,7 @@ class SocialMediaBlog():
     def editor_agent(self) -> Agent:
         return Agent(
             config=self.agents_config['editor_agent'], # type: ignore[index]
-            tools=[
-            duckduckgo_tool_func
-        ],
+            tools=[duckduckgo_tool_func],
             verbose=True,
             llm=get_llm()
         )
@@ -142,25 +134,29 @@ class SocialMediaBlog():
     def trend_hunting_task(self) -> Task:
         return Task(
             config=self.tasks_config['trend_hunting_task'], # type: ignore[index]
+            agent=self.trend_hunter()
         )
 
     @task
     def research_task(self) -> Task:
         return Task(
             config=self.tasks_config['research_task'], # type: ignore[index]
+            agent=self.editor_agent()
         )
 
     @task
     def reporting_task(self) -> Task:
         return Task(
             config=self.tasks_config['reporting_task'], # type: ignore[index]
+            agent=self.writer_agent()
         )
 
     @task
     def summarizing_task(self) -> Task:
         return Task(
             config=self.tasks_config['summarizing_task'], # type: ignore[index]
-            output_pydantic_model = BlogOutput
+            agent=self.summarizer_agent(),
+            output_pydantic_model = BlogOutput,
         )
 
     @crew
