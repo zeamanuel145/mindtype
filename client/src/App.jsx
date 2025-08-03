@@ -1,10 +1,13 @@
 "use client"
 
-import { useState, useEffect } from "react"
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom"
+import { AuthProvider } from "./context/AuthContext"
 import Header from "./components/Header"
-import Chatbot from "./components/Chatbot"
+import ChatBot from "./components/Chatbot"
+import ProtectedRoute from "./components/ProtectedRoute"
 import Home from "./pages/Home"
+import Login from "./pages/Login"
+import Register from "./pages/Register"
 import Dashboard from "./pages/Dashboard"
 import Explore from "./pages/Explore"
 import MyPosts from "./pages/MyPosts"
@@ -15,62 +18,100 @@ import PostDetail from "./pages/PostDetail"
 import "./App.css"
 
 function App() {
-  const [posts, setPosts] = useState([])
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    fetch("http://localhost:5000/api/posts")
-      .then((res) => res.json())
-      .then((data) => {
-        setPosts(data)
-        setLoading(false)
-      })
-      .catch((err) => {
-        console.error("Error fetching posts:", err)
-        setLoading(false)
-      })
-  }, [])
-
-  const addPost = (newPost) => {
-    // Optionally POST to backend API here to save new post
-    const post = {
-      ...newPost,
-      id: posts.length + 1, // ideally backend generates id
-      author: "Elizabeth Johnson",
-      date: new Date().toLocaleDateString(),
-    }
-    setPosts([...posts, post])
-  }
-
-  const updatePost = (id, updatedPost) => {
-    setPosts(posts.map((post) => (post.id === Number.parseInt(id) ? { ...post, ...updatedPost } : post)))
-  }
-
-  const deletePost = (postId) => {
-    setPosts(posts.filter((post) => post.id !== postId))
-  }
-
-  if (loading) {
-    return <div>Loading posts...</div>
-  }
-
   return (
-    <Router>
-      <div className="min-h-screen bg-gray-100">
-        <Header />
-        <Routes>
-          <Route path="/" element={<Home posts={posts} />} />
-          <Route path="/dashboard" element={<Dashboard posts={posts} />} />
-          <Route path="/explore" element={<Explore posts={posts} />} />
-          <Route path="/my-posts" element={<MyPosts posts={posts} onDeletePost={deletePost} />} />
-          <Route path="/profile" element={<Profile />} />
-          <Route path="/create-post" element={<CreatePost onAddPost={addPost} />} />
-          <Route path="/edit-post/:id" element={<EditPost posts={posts} onUpdatePost={updatePost} />} />
-          <Route path="/post/:id" element={<PostDetail posts={posts} />} />
-        </Routes>
-        <Chatbot />
-      </div>
-    </Router>
+    <AuthProvider>
+      <Router>
+        <div className="min-h-screen bg-gray-100">
+          <Routes>
+            {/* Public routes */}
+            <Route
+              path="/"
+              element={
+                <>
+                  <Header />
+                  <Home />
+                  <ChatBot />
+                </>
+              }
+            />
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+
+            {/* Protected routes */}
+            <Route
+              path="/dashboard"
+              element={
+                <ProtectedRoute>
+                  <Header />
+                  <Dashboard />
+                  <ChatBot />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/explore"
+              element={
+                <ProtectedRoute>
+                  <Header />
+                  <Explore />
+                  <ChatBot />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/my-posts"
+              element={
+                <ProtectedRoute>
+                  <Header />
+                  <MyPosts />
+                  <ChatBot />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/profile"
+              element={
+                <ProtectedRoute>
+                  <Header />
+                  <Profile />
+                  <ChatBot />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/create-post"
+              element={
+                <ProtectedRoute>
+                  <Header />
+                  <CreatePost />
+                  <ChatBot />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/edit-post/:id"
+              element={
+                <ProtectedRoute>
+                  <Header />
+                  <EditPost />
+                  <ChatBot />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/post/:id"
+              element={
+                <ProtectedRoute>
+                  <Header />
+                  <PostDetail />
+                  <ChatBot />
+                </ProtectedRoute>
+              }
+            />
+          </Routes>
+        </div>
+      </Router>
+    </AuthProvider>
   )
 }
 
