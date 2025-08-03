@@ -124,7 +124,6 @@ def create_fallback_output(content: str) -> dict:
         
     except Exception as e:
         logger.error(f"Error creating fallback output: {e}")
-        # Ultimate fallback
         return {
             "title": "Generated Blog Post",
             "blog_post": content if content else "Content could not be generated.",
