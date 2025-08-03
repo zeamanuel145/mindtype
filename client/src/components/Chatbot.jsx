@@ -36,7 +36,7 @@ const Chatbot = () => {
     setIsTyping(true)
 
     try {
-      const response = await fetch("https://mindtype.onrender.com", {
+      const response = await fetch("https://mindtype.onrender.com/api/generate-blog", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
