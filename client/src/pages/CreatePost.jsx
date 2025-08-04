@@ -212,7 +212,7 @@ const CreatePost = () => {
                       value={formData.title}
                       onChange={handleInputChange}
                       placeholder="Enter an engaging title for your post..."
-                      className="w-full px-4 py-4 text-xl border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                      className="w-full text-black px-4 py-4 text-xl border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
                       required
                     />
                   </div>
@@ -228,7 +228,7 @@ const CreatePost = () => {
                       onChange={handleInputChange}
                       placeholder="Write a brief description of your post..."
                       rows={3}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all resize-none"
+                      className="w-full text-black px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all resize-none"
                     />
                   </div>
 
@@ -284,7 +284,7 @@ const CreatePost = () => {
                       onChange={handleInputChange}
                       placeholder="Tell your story... Use markdown for formatting!"
                       rows={16}
-                      className="w-full px-4 py-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all resize-none text-lg leading-relaxed"
+                      className="w-full text-black px-4 py-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all resize-none text-lg leading-relaxed"
                       required
                     />
                     <div className="mt-2 text-sm text-gray-500">
@@ -367,14 +367,15 @@ const CreatePost = () => {
             <div className="bg-white rounded-xl shadow-sm border p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Post Settings</h3>
               <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
+                <div className="">
+                  <label className="block  text-black text-sm font-medium  mb-2">Category</label>
                   <select
                     name="category"
                     value={formData.category}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                    className="w-full text-black px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                   >
+                    <div className="text-black ">
                     <option value="Technology">Technology</option>
                     <option value="Design">Design</option>
                     <option value="Travel">Travel</option>
@@ -385,6 +386,7 @@ const CreatePost = () => {
                     <option value="Fashion">Fashion</option>
                     <option value="Sports">Sports</option>
                     <option value="Entertainment">Entertainment</option>
+                    </div>
                   </select>
                 </div>
 
@@ -396,7 +398,7 @@ const CreatePost = () => {
                     value={formData.tags}
                     onChange={handleInputChange}
                     placeholder="javascript, react, tutorial"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                    className="w-full text-black px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                   />
                   <div className="mt-1 text-xs text-gray-500">Separate tags with commas</div>
                 </div>
@@ -407,7 +409,7 @@ const CreatePost = () => {
                     name="status"
                     value={formData.status}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                    className="w-full text-black px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                   >
                     <option value="published">Published</option>
                     <option value="draft">Draft</option>

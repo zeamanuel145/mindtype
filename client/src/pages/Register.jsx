@@ -69,7 +69,7 @@ const Register = () => {
     setIsLoading(true)
 
     try {
-      const { confirmPassword, ...registerData } = formData
+          const { confirmPassword, ...registerData } = formData
       await register(registerData)
       navigate("/dashboard")
     } catch (error) {
