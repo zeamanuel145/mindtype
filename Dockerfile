@@ -1,4 +1,3 @@
-# Use a slim Python image for a smaller container size
 FROM python:3.11.8-slim
 
 # Set the working directory in the container
