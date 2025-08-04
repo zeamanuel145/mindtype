@@ -69,13 +69,30 @@ const Register = () => {
     setIsLoading(true)
 
     try {
-      const { confirmPassword, ...registerData } = formData
-      await register(registerData)
-      navigate("/dashboard")
-    } catch (error) {
-      console.error("Registration failed:", error)
-    } finally {
-      setIsLoading(false)
+      console.log("Trying to sign up with:", username, email, password);
+
+      const res = await fetch('https://mindtype-1.onrender.com', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ username, email, password }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.message || 'Signup failed');
+      }
+
+      // Optional: Save token if your backend returns one on signup
+      // localStorage.setItem('token', data.token);
+
+      alert("Signup successful! Please log in.");
+      navigate('/login');
+    } catch (err) {
+      console.error('Signup error:', err.message);
+      alert(err.message || 'Signup failed. Please try again.');
     }
   }
 
