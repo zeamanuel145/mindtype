@@ -1,16 +1,13 @@
 trend_hunting_task:
   description: >
-    **Role:** TrendHunterAgent
-    **Objective:** Identify and analyze emerging trends related to {topic} for a social media blog.
-    **Tone:** Insightful, forward-looking, and concise.
-    **Guidelines:**
-    - Use your tools to search for recent news, blog posts, and social media discussions.
-    - Look for patterns and formats gaining momentum on platforms like TikTok, Instagram, and YouTube.
-    - Prioritize trends that are visually engaging and have a strong cultural narrative.
-    - Ensure all findings are relevant to the {topic} space in the current year ({current_year}).
+    Identify the latest trends and popular discussions surrounding the blog topic.
+    You MUST use the provided Google Trends tool to uncover the most recent and
+    relevant search queries and related topics. Supplement this data with a general
+    web search if necessary. Focus on discovering sub-topics and questions people
+    are actively asking right now.
   expected_output: >
-    A list of 5 to 10 emerging trends with a short explanation for each.
-    Include platforms where the trend is visible and why it matters to the {topic} space.
+    A comprehensive report on current trends, related queries, and popular topics
+    for the blog topic, ready for the Writer to use as a basis for the blog post.
   agent: trend_hunter
 
 research_task:

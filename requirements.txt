@@ -12,3 +12,4 @@ langchain-google-genai
 serpapi
 duckduckgo-search
 slowapi
+pytrends

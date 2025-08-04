@@ -11,7 +11,7 @@ class ToneEnum(str, Enum):
 
 class BlogRequest(BaseModel):
     topic: str = Field(..., min_length=1, max_length=500, description="The topic for the blog post")
-    tone: ToneEnum = Field(default=ToneEnum.professional, description="The tone of the blog post")
+    tone: ToneEnum = Field(default=ToneEnum.informative, description="The tone of the blog post")
     platform_guidelines: Optional[str] = Field(default="General social media guidelines", description="Platform-specific guidelines")
 
 class BlogOutput(BaseModel):
