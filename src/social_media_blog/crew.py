@@ -1,10 +1,12 @@
-from crewai import Agent, Crew, Process, Task, LLM
+from crewai import Agent, Crew, Process, Task
 from crewai.project import CrewBase, agent, crew, task
 from crewai.agents.agent_builder.base_agent import BaseAgent
-import pandas as pd
 from typing import List
+from tools import get_llm, google_trends_tool, web_search_tool, rag_tool
 from db_handler import logger
 from .chat_models import BlogOutput
+
+
 import os
 
 logger = logger()
@@ -35,8 +37,8 @@ class SocialMediaBlog():
     @agent
     def trend_hunter(self) -> Agent:
         return Agent(
-            config=self.agents_config['trend_hunter'], # type: ignore[index]
-            tools=[web_search_tool,duckduckgo_tool_func,google_trends_tool],
+            config=self.agents_config['trend_hunter'],
+            tools=[google_trends_tool, web_search_tool],
             verbose=True,
             llm=get_llm()
         )
@@ -44,8 +46,8 @@ class SocialMediaBlog():
     @agent
     def editor_agent(self) -> Agent:
         return Agent(
-            config=self.agents_config['editor_agent'], # type: ignore[index]
-            tools=[duckduckgo_tool_func],
+            config=self.agents_config['editor_agent'], 
+            tools=[web_search_tool, rag_tool],
             verbose=True,
             llm=get_llm()
         )
@@ -53,8 +55,7 @@ class SocialMediaBlog():
     @agent
     def writer_agent(self) -> Agent:
         return Agent(
-            config=self.agents_config['writer_agent'], # type: ignore[index]
-            tools=[rag_tool],
+            config=self.agents_config['writer_agent'],
             verbose=True,
             llm=get_llm()
         )
@@ -62,7 +63,7 @@ class SocialMediaBlog():
     @agent
     def summarizer_agent(self) -> Agent:
         return Agent(
-            config=self.agents_config['summarizer_agent'], # type: ignore[index]
+            config=self.agents_config['summarizer_agent'],
             verbose=True,
             llm=get_llm()
         )
@@ -70,30 +71,36 @@ class SocialMediaBlog():
     @task
     def trend_hunting_task(self) -> Task:
         return Task(
-            config=self.tasks_config['trend_hunting_task'], # type: ignore[index]
-            agent=self.trend_hunter()
+            config=self.tasks_config['trend_hunting_task'],
+            agent=self.trend_hunter(),
+            run_mode=Process.concurrent
         )
 
     @task
     def research_task(self) -> Task:
         return Task(
-            config=self.tasks_config['research_task'], # type: ignore[index]
-            agent=self.editor_agent()
+            config=self.tasks_config['research_task'],
+            agent=self.editor_agent(),
+            run_mode=Process.concurrent
+
         )
 
     @task
     def reporting_task(self) -> Task:
         return Task(
-            config=self.tasks_config['reporting_task'], # type: ignore[index]
-            agent=self.writer_agent()
+            config=self.tasks_config['reporting_task'],
+            agent=self.writer_agent(),
+            depends_on=[self.trend_hunting_task(), self.research_task()],
+            run_mode=Process.concurrent
         )
 
     @task
     def summarizing_task(self) -> Task:
         return Task(
-            config=self.tasks_config['summarizing_task'], # type: ignore[index]
+            config=self.tasks_config['summarizing_task'],
             agent=self.summarizer_agent(),
             output_pydantic_model = BlogOutput,
+            depends_on=[self.reporting_task()]
         )
 
     @crew

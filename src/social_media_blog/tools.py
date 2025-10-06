@@ -121,7 +121,6 @@ def rag_tool(query: str) -> str:
         logger.error(f"RAG Tool: Error during retrieval - {e}", exc_info=True)
         return f"Error retrieving context from knowledge base: {e}. Please proceed without."
 
-@tool
 def get_llm():
     try:
         return ChatGroq(
