@@ -3,23 +3,24 @@ from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 from .crew import SocialMediaBlog
 from .chat_models import *
-import logging
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 from contextlib import asynccontextmanager
+from langchain.prompts import ChatPromptTemplate
+from langchain_core.output_parsers import StrOutputParser
+from db_handler import logger
+from tools import get_llm
 import json
 import re
 
-logging.basicConfig(level=logging.
-INFO,format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-logger = logging.getLogger(__name__)
-
 load_dotenv()
 
+logger = logger()
+llm = get_llm()
 # Initializing the rate limiter
-limiter = Limiter(key_func=get_remote_address, default_limits=["10/minute"])
+limiter = Limiter(key_func=get_remote_address, default_limits=["5/minute"])
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -33,7 +34,10 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title="AI Blog Post Generator", lifespan=lifespan)
+app = FastAPI(title="AI Blog Post Generator", 
+              lifespan=lifespan, 
+              description="Chatbot backend for Mindtype, a social blog comapny",
+              version="1.1")
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.add_middleware(SlowAPIMiddleware)
@@ -55,6 +59,27 @@ app.add_middleware(
     allow_headers=["*"]
 )
 
+async def route_query(user_request: str) -> str:
+    """Route queries intelligently between CrewAI (health) or LangChain (general chat)."""
+    router_prompt = ChatPromptTemplate.from_template(
+        """
+        You are a routing expert. Decide whether to route the user query to 
+        'crewai' (for content generation) or 'langchain' (for general chat).
+        
+        Respond with one word only: crewai or langchain.
+        
+        User: "{query}"
+        Response:
+        """
+    )
+    router_chain = router_prompt | llm | StrOutputParser()
+
+    try:
+        decision = await router_chain.ainvoke({"query": user_request})
+        return decision.strip().lower()
+    except Exception as e:
+        logger.exception("Router LLM failed. Proceeding with langchain")
+        return "langchain"
 
 def extract_structured_output(result) -> dict:
     """Extract structured output from crew result - GUARANTEED TO WORK"""
