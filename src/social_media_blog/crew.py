@@ -1,118 +1,11 @@
 from crewai import Agent, Crew, Process, Task, LLM
 from crewai.project import CrewBase, agent, crew, task
 from crewai.agents.agent_builder.base_agent import BaseAgent
-from crewai.tools import tool
-from pytrends.request import TrendReq
 import pandas as pd
-from langchain_community.tools import DuckDuckGoSearchRun
 from typing import List
-from content.pinecone_setup import knowledge_base
 from .chat_models import BlogOutput
 import os
-import logging
 
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-)
-logger = logging.getLogger(__name__)
-
-@tool
-def google_trends_tool(query: str) -> str:
-    """
-    Analyzes Google Trends for a given query and returns related topics and queries.
-    This helps identify current search trends and popular sub-topics.
-    The output is a detailed report on related searches and trending topics.
-    """
-    try:
-        pytrends = TrendReq(hl='en-US', tz=360)
-        
-        # Build payload with the user's query
-        pytrends.build_payload([query], cat=0, timeframe='today 3-m', geo='US')
-        
-        # Get the top 5 related queries
-        related_queries = pytrends.related_queries().get(query, {})
-        top_queries = related_queries.get('top', pd.DataFrame()).head(5)
-        
-        # Get the top 5 related topics
-        related_topics = pytrends.related_topics().get(query, {})
-        top_topics = related_topics.get('top', pd.DataFrame()).head(5)
-        
-        result_str = f"Google Trends Analysis for '{query}' (Past 3 months, US):\n\n"
-        
-        if not top_queries.empty:
-            result_str += "Top 5 Related Queries:\n"
-            result_str += '\n'.join([f"- {row['query']} (Score: {row['value']})" for index, row in top_queries.iterrows()])
-        else:
-            result_str += "No related queries found.\n"
-        
-        if not top_topics.empty:
-            result_str += "\n\nTop 5 Related Topics:\n"
-            result_str += '\n'.join([f"- {row['topic_title']} (Type: {row['topic_type']}, Score: {row['value']})" for index, row in top_topics.iterrows()])
-        else:
-            result_str += "No related topics found.\n"
-        
-        logging.info(f"Google Trends Tool: Found related queries and topics for '{query}'")
-        return result_str
-        
-    except Exception as e:
-        logging.error(f"Google Trends Tool failed: {e}", exc_info=True)
-        return "Failed to fetch Google Trends data. Please proceed with general knowledge."
-
-@tool
-def rag_tool(query: str) -> str:
-    """A tool to retrieve relevant context from the Pinecone knowledge base."""
-    try:
-        logger.info(f"RAG Tool: Searching for documents related to the topic: '{query}'...")
-        retrieved_docs = knowledge_base.similarity_search(query, k=5)
-        context = "\n\n".join([doc.page_content for doc in retrieved_docs])
-        
-        if not context:
-            logger.warning("RAG Tool: No relevant information found.")
-            return "No relevant information found in the knowledge base."
-        
-        logger.info(f"RAG Tool: Successfully retrieved context.")
-        return context
-    except Exception as e:
-        logger.error(f"RAG Tool: Error during retrieval - {e}", exc_info=True)
-        return f"Error retrieving context from knowledge base: {e}. Please proceed without."
-
-@tool
-def web_search_tool(query: str) -> str:
-    """A tool to search the web for current information."""
-    try:
-        logger.info(f"Web Search Tool: Searching for: '{query}'...")
-        search_tool_instance = DuckDuckGoSearchRun()
-        results = search_tool_instance.run(query)
-        logger.info(f"Web Search Tool: Successfully retrieved search results.")
-        return results
-    except Exception as e:
-        logger.error(f"Web Search Tool: Error during search - {e}", exc_info=True)
-        return f"Error searching the web: {e}. Please proceed without web search results."
-
-@tool
-def duckduckgo_tool_func(query: str) -> str:
-    """A wrapper around DuckDuckGoSearchRun for use with crewai.project."""
-    try:
-        logger.info(f"DuckDuckGo Tool: Searching for: '{query}'...")
-        search_tool_instance = DuckDuckGoSearchRun()
-        results = search_tool_instance.run(query)
-        logger.info(f"DuckDuckGo Tool: Successfully retrieved search results.")
-        return results
-    except Exception as e:
-        logger.error(f"DuckDuckGo Tool: Error during search - {e}", exc_info=True)
-        return f"Error searching the web: {e}. Please proceed without web search results."
-
-def get_llm():
-    try:
-        return LLM(
-            model="gemini/gemini-1.5-flash",
-            api_key=os.getenv("GOOGLE_API_KEY"),
-            temperature=0.5
-        )
-    except Exception as e:
-        logger.error(f"Failed to connect to Gemini... : {e}")
-        raise ValueError(f"Failed to connect to Gemini")
 
 @CrewBase
 class SocialMediaBlog():
