@@ -3,10 +3,11 @@ from crewai.project import CrewBase, agent, crew, task
 from crewai.agents.agent_builder.base_agent import BaseAgent
 import pandas as pd
 from typing import List
+from db_handler import logger
 from .chat_models import BlogOutput
 import os
 
-
+logger = logger()
 @CrewBase
 class SocialMediaBlog():
     """SocialMediaBlog crew"""
@@ -24,7 +25,7 @@ class SocialMediaBlog():
                 self.tasks_config = yaml.safe_load(f)
             logger.info("Configuration files loaded successfully")
         except Exception as e:
-            logging.warning("Failed to load config files: %s", e)
+            logger.warning("Failed to load config files: %s", e)
             self.agents_config = {}
             self.tasks_config = {}
 

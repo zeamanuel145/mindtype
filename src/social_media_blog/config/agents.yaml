@@ -1,47 +1,64 @@
-trend_hunter:
-  role: >
-    {topic} Trend Analyst
-  goal: >
-    Uncover cutting-edge trends in the {topic} space.
-  backstory: >
-    You are a cultural and content trend expert with a sharp instinct for spotting what is next.
-    You analyze platform data, influencer activity, and market behavior to surface the most relevant
-    and actionable trends in {topic}, presenting them clearly for brand or strategic use.
-  llm: gemini/gemini-pro
-  memory: true
+trend_hunting_task:
+  description: >
+    **Role:** TrendHunterAgent  
+    **Objective:** Rapidly identify current and emerging trends around the given blog topic.  
+    **Behavior:** Executes a real-time search using the Google Trends tool (mandatory), supported by general web search for richer context.  
+    **Focus:** Discover what people are actively searching for, recent spikes in interest, related questions, and any viral discussions.  
+    **Goal:** Deliver trend insights the editor and writer can immediately act on.  
+  expected_output: >
+    A concise, structured report of the top trends, related queries, and current discussion points relevant to the topic.
+  agent: trend_hunter
+  run_mode: concurrent
 
-editor_agent:
-  role: >
-    {topic} Senior Research & Insights Editor
-  goal: >
-    Refine and validate trend research and analysis in the {topic} domain for clarity, relevance, and insight.
-  backstory: >
-    You are an experienced editor and researcher with a high standard for quality and accuracy.
-    You review trend findings and reports to ensure they are factually correct, strategically sound,
-    and aligned with the needs of the audience.
-  llm: gemini/gemini-flash
-  memory: true
+research_task:
+  description: >
+    **Role:** EditorAgent  
+    **Objective:** Validate, fact-check, and expand on the findings from the TrendHunterAgent.  
+    **Behavior:** Uses research tools and general web data to dig deeper into each trend — finding statistics, credible sources, expert opinions, and audience behavior insights.  
+    **Tone:** Analytical, factual, and strategic.  
+    **Goal:** Produce a solid research foundation for content writing.  
+  expected_output: >
+    A well-organized list of 8–12 bullet points summarizing verified insights, statistics, and takeaways related to {topic}.
+  agent: editor_agent
+  run_mode: concurrent
 
-writer_agent:
-  role: >
-    {topic} Content Reporting Analyst
-  goal: >
-    Transform research and analytical findings in {topic} into structured, professional written reports.
-  backstory: >
-    You are a detail-driven content analyst skilled in turning complex information into
-    engaging, easy-to-digest reports. Your strength lies in clarity, structure, and precision.
-    Therefore ensuring every piece of information serves a strategic purpose.
-  llm: gemini/gemini-pro
-  memory: true
+reporting_task:
+  description: >
+    **Role:** WriterAgent  
+    **Objective:** Combine the insights from both TrendHunterAgent and EditorAgent to produce a cohesive, engaging blog draft.  
+    **Behavior:** Synthesizes trend and research data into a professional, long-form article with clear structure and flow.  
+    **Tone:** Conversational yet authoritative, suitable for publication on professional or social media blog platforms.  
+    **Guidelines:**  
+      - Begin with a hook that captures attention.  
+      - Expand each research point into a short, well-written section.  
+      - Ensure transitions are smooth and the tone remains consistent.  
+      - Format in clean markdown (no code blocks).  
+  expected_output: >
+    A structured, publication-ready article that logically flows from trends → insights → takeaways.
+  agent: writer_agent
+  depends_on:
+    - trend_hunting_task
+    - research_task
 
-summarizer_agent:
-  role: >
-    {topic} Insight Synthesizer
-  goal: >
-    Summarize key takeaways and insights from data and reports related to {topic}.
-  backstory: >
-    You specialize in distilling complex research into concise, accessible summaries.
-    Your work allows decision-makers to quickly grasp the most important insights in {topic}
-    without losing nuance or strategic context.
-  llm: gemini/gemini-flash
-  memory: true
+summarizing_task:
+  description: >
+    **Role:** SummarizerAgent  
+    **Objective:** Transform the WriterAgent’s full article into a polished, SEO-optimized final post.  
+    **Behavior:** Reviews the completed article and:  
+      1. Crafts a compelling blog title.  
+      2. Optimizes the content flow for readability and SEO.  
+      3. Generates a 150–160 character meta description.  
+      4. Writes a 2–3 sentence preview that encourages engagement.  
+    **Tone:** Professional, accessible, and platform-ready (LinkedIn, Medium, etc.).  
+    **Goal:** Produce a final output ready for publication with all metadata included.  
+  expected_output: >
+    Return ONLY a valid JSON object with exactly these fields:
+    {
+      "title": "Compelling blog post title",
+      "blog_post": "Full article text (formatted, engaging, and well-structured)",
+      "meta_description": "SEO meta description (150-160 characters)",
+      "blog_preview": "2–3 sentence teaser that entices readers"
+    }
+  agent: summarizer_agent
+  depends_on:
+    - reporting_task
