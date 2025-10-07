@@ -10,9 +10,10 @@ from pytrends.request import TrendReq
 from crewai.tools import tool
 from dotenv import load_dotenv
 import pandas as pd
+from pathlib import Path
 from langchain_groq import ChatGroq
-from db_handler import logger, get_knowledge_base
-from chat_models import BlogOutput
+from .db_handler import logger, get_knowledge_base
+from .chat_models import BlogOutput
 import os
 import requests
 
@@ -21,12 +22,14 @@ load_dotenv()
 knowledge_base = get_knowledge_base()
 
 try:
+    logger.info("Connecting to Groq LLM")
     llm = ChatGroq(
         model=os.getenv("GROQ_MODEL"),
         api_key=os.getenv("GROQ_API_KEY"),
         temperature=0.7,
         reasoning_effort="medium"
     )
+    logger.info("Successfully connected to Groq AI model")
 except Exception as e:
     logger.exception(f"Failed to connect to Groq AI model... : {e}")
 
@@ -106,8 +109,8 @@ class SocialMediaBlog():
         import os
         import yaml
 
-        base_dir = os.path.dirname(__file__)
-        config_dir = os.path.join(base_dir, "config")
+        base_dir = Path(__file__).resolve().parent
+        config_dir = str(base_dir/"config")
 
         try:
             with open(os.path.join(config_dir, "agents.yaml"), "r") as f:
@@ -152,9 +155,8 @@ class SocialMediaBlog():
     def research_task(self) -> Task:
         return Task(
             config=self.tasks_config["research_task"],
-            agent=self.research_agent(),
-            run_mode=Process.independent
-        )
+            agent=self.research_agent()
+                            )
     
     @task
     def writing_task(self) -> Task:

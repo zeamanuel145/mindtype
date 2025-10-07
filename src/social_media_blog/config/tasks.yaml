@@ -18,7 +18,7 @@ writing_task:
   description: >
     **Role:** WritingAgent  
     **Objective:** Convert the ResearchAgent’s findings into a professional, well-structured, and engaging long-form report.  
-    **Tone:** Clear, analytical, and professional.  
+    **Tone:** {tone}.  
     **Guidelines:** 
       - Use the research report as your foundation.
       - Organize the information logically with clear headings and subheadings.
@@ -37,7 +37,7 @@ summarizing_task:
   description: >
     **Role:** SummarizingAgent  
     **Objective:** Refine, summarize, and optimize the final report for SEO and publication.  
-    **Tone:** Professional, concise, and reader-friendly.  
+    **Tone:** {tone}.  
     **Guidelines:** 
       - Review the full report from the WritingAgent.
       - Craft an SEO-friendly **blog title**.

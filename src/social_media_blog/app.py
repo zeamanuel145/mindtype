@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
-from chat_models import *
+from .chat_models import *
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
@@ -9,13 +9,13 @@ from slowapi.middleware import SlowAPIMiddleware
 from contextlib import asynccontextmanager
 from langchain.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
-from db_handler import logger
-import json
-import re
-from crew import SocialMediaBlog,llm
+from .db_handler import logger
+from typing import Union
+from .crew import SocialMediaBlog,llm, knowledge_base
 
 
 load_dotenv()
+
 
 limiter = Limiter(key_func=get_remote_address, default_limits=["5/minute"])
 
@@ -38,7 +38,6 @@ app = FastAPI(title="AI Blog Post Generator",
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.add_middleware(SlowAPIMiddleware)
-
 origins = [
     "https://extraordinary-profiterole-f80940.netlify.app",
     "http://localhost",
@@ -78,200 +77,104 @@ async def route_query(user_request: str) -> str:
         logger.exception("Router LLM failed. Proceeding with langchain")
         return "langchain"
 
-def extract_structured_output(result) -> dict:
-    """Extract structured output from crew result - GUARANTEED TO WORK"""
+def assistant(user_query: str):
+    chat_prompt_template = ChatPromptTemplate.from_template(
+    """
+You are the official general support AI Chatbot for **Mindtype**.
+Mindtype is a company founded by **DirectEd scholars** after working on a project, and we focus on high-quality **blog posts and content**.
+
+Keep replies **brief, realistic, and chat-like** — like a responsive support assistant.
+Do **not** repeat long intros or greetings in every reply.
+
+---
+
+### 📘 Knowledge Base (for reference only, do not dump unless asked):
+- **Focus:** High-quality blog posts, insights, and content creation.
+- **Founding:** Established by DirectEd scholars following a successful project.
+- **Core Process:** Blog generation is handled by a specialized **CrewAI team** (internal process).
+- **General Support:** This LangChain-based chat handles general questions, company info, and navigation.
+- **Goal:** To share knowledge and foster discussion.
+
+---
+
+### 🚨 Handling Off-topic:
+- If question is unrelated → Answer briefly, but politely warn in a warm but professional method. For example:
+  *"Note: I can mainly assist with Mindtype, our content, or company info."* Alternate the way you produce this message so that it does not appear as a hardcoded  message but instead a real-time chatbot or a human.
+
+---
+
+### ⚡ Style:
+- **Tone:** Professional, knowledgeable, and concise.
+- **Length:** 1–3 short sentences.
+- **Formatting:** Use simple lists/emojis if it aids clarity.
+
+---
+    Context: {context}
+👤 User: {user_query}
+💬 Chatbot:
+    """
+)
+
     try:
-        # Get the content as string
-        content = str(result)
-        
-        # Remove the markdown code block markers
-        if '```json' in content:
-            # Extract everything between ```json and ```
-            start = content.find('```json') + 7  # Skip past ```json
-            end = content.find('```', start)
-            if end != -1:
-                content = content[start:end].strip()
-        
-        # Now find the JSON object
-        start = content.find('{')
-        end = content.rfind('}') + 1
-        
-        if start != -1 and end > start:
-            json_str = content[start:end]
-            
-            # Parse the JSON
-            parsed = json.loads(json_str)
-            
-            # Log what we found
-            logger.info(f"Parsed JSON keys: {list(parsed.keys())}")
-            
-            # Check if we have all required fields
-            required = ['title', 'blog_post', 'meta_description', 'blog_preview']
-            missing = [key for key in required if key not in parsed or not parsed[key]]
-            
-            if not missing:
-                logger.info("Successfully extracted all required fields")
-                return parsed
-            else:
-                logger.error(f"Missing fields in parsed JSON: {missing}")
-        
-        # If that fails, fallback
-        logger.warning("JSON extraction failed, using fallback")
-        return create_fallback_output(content)
-        
+        docs = knowledge_base.invoke(user_query)
+        context = "\n".join([doc.page_content for doc in docs]).strip() if docs else ""
     except Exception as e:
-        logger.error(f"Extraction failed: {e}")
-        return create_fallback_output(str(result))
+        logger.exception(f"Retriever failed")
+        context = ""
 
-def create_fallback_output(content: str) -> dict:
-    """Create fallback output when parsing fails"""
-    try:
-        # Extract title
-        title = extract_title(content)
-        
-        # Use content as blog post (clean it up)
-        blog_post = content
-        if '```json' in blog_post:
-            # Remove JSON blocks and keep the readable content
-            parts = blog_post.split('```')
-            blog_post = '\n'.join([part for i, part in enumerate(parts) if i % 2 == 0])
-        
-        # Create meta description and preview
-        meta_description = create_meta_description(blog_post)
-        blog_preview = create_preview(blog_post)
-        
-        result = {
-            "title": title,
-            "blog_post": blog_post.strip(),
-            "meta_description": meta_description,
-            "blog_preview": blog_preview
-        }
-        
-        logger.info("Created fallback output successfully")
-        return result
-        
-    except Exception as e:
-        logger.error(f"Error creating fallback output: {e}")
-        return {
-            "title": "Generated Blog Post",
-            "blog_post": content if content else "Content could not be generated.",
-            "meta_description": "Insights and analysis on your requested topic.",
-            "blog_preview": "Discover the latest trends and insights."
-        }
+    chain = chat_prompt_template | llm | StrOutputParser()
 
-def extract_title(content: str) -> str:
-    """Extract or create a title from content"""
-    # Look for markdown headers
-    title_match = re.match(r'^#\s*(.+)', content, re.MULTILINE)
-    if title_match:
-        return title_match.group(1).strip()
-    
-    # Look for **bold** text at the beginning
-    bold_match = re.match(r'^\*\*(.+?)\*\*', content)
-    if bold_match:
-        return bold_match.group(1).strip()
-    
-    # Extract first sentence as title
-    sentences = content.split('.')
-    if sentences:
-        return sentences[0].strip()[:100]  # Limit to 100 chars
-    
-    return "Generated Blog Post"
-
-def create_meta_description(content: str) -> str:
-    """Create SEO meta description from content"""
-    # Remove markdownDirectEd-api and get clean text
-    clean_content = re.sub(r'[#*`]', '', content)
-    sentences = clean_content.split('.')
-    
-    # Take first 2-3 sentences up to 160 characters
-    description = ""
-    for sentence in sentences[:3]:
-        if len(description + sentence + ".") <= 160:
-            description += sentence.strip() + ". "
-        else:
-            break
-    
-    return description.strip() or "Comprehensive insights and trends analysis."
-
-def create_preview(content: str) -> str:
-    """Create blog preview from content"""
-    # Remove markdown and get clean text
-    clean_content = re.sub(r'[#*`]', '', content)
-    sentences = clean_content.split('.')
-    
-    # Take first 2 sentences
-    preview_sentences = sentences[:2]
-    preview = '. '.join(s.strip() for s in preview_sentences if s.strip()) + "."
-    
-    return preview if len(preview) > 10 else "Discover the latest trends and insights in this comprehensive analysis."
-
-
-
+    return chain.invoke({
+        "user_query": user_query,
+        "context": context })
 
 @app.get("/")
 async def root():
     return {"message": "Loaded successfully! Visit /docs"}
 
-@app.post("/api/generate-blog", response_model=BlogResponse)
+
+@app.post("/chat", response_model=Union[BlogResponse, ChatResponse])
 @limiter.limit("5/minute")
 async def generate_blog(request: Request, body: BlogRequest):
+    route_decision = await route_query(user_request=body.topic
+    )
     try:
-        logger.info(f"Received request for blog generation. Topic: '{body.topic}', Tone: '{body.tone}'")
-
-        if not body.topic:
-            raise HTTPException(status_code=400, detail="Topic cannot be empty.")
-        
-        inputs = {
-            'topic': body.topic.strip(),
-            'tone': body.tone,
-            'platform_guidelines': body.platform_guidelines,
-            'current_year': 2025
-        }
-        
-        crew_instance = app.state.crew_instance
-        result = crew_instance.kickoff(inputs=inputs)
-
-        try:
-            output_data = extract_structured_output(result)
-            logger.info("Successfully extracted structured output")
-        except Exception as e:
-            logger.error(f"Failed to extract structured output: {e}")
-            raise HTTPException(status_code=500, detail="Failed to process crew output")
-
-        # Validate required fields
-        required_fields = ['title', 'blog_post', 'meta_description', 'blog_preview']
-        missing_fields = [field for field in required_fields if field not in output_data or not output_data[field]]
-        
-        if missing_fields:
-            logger.error(f"Missing required fields: {missing_fields}")
-            raise HTTPException(status_code=500, detail=f"Missing required fields: {missing_fields}")
-
-        # Create and validate BlogOutput
-        try:
-            blog_output = BlogOutput(**output_data)
-        except Exception as e:
-            logger.error(f"BlogOutput validation failed: {e}")
-            raise HTTPException(status_code=500, detail=f"Output validation failed: {e}")
-
-
-        return BlogResponse(
-            status="success",
-            content=blog_output.blog_post,
-            meta_description=blog_output.meta_description,
-            blog_preview=blog_output.blog_preview,
-        )
-    
-    except HTTPException as e:
-        logger.error(f"HTTP Exception: {e.detail}")
-        raise e
+        if route_decision == "langchain":
+            logger.info("Routing conversation to Langchain...")
+            response_text = assistant(body.topic)
+            if response_text:
+                logger.info("Chatbot returned an answer!")
+            return ChatResponse(response=response_text)
+        elif route_decision == "crewai":
+            logger.info("Routing conversation to Crewai")
+            try:
+                crew_instance = request.app.state.crew_instance
+                response =  crew_instance.kickoff(inputs={'topic': body.topic, "tone": body.tone})
+                logger.info("CREW Pipeline completed successfully")
+                return BlogResponse(
+                    status="success",
+                    title=response.title,
+                    content=response.blog_post,
+                    meta_description=response.meta_description,
+                    blog_preview=response.blog_preview
+                )
+            except Exception as e:
+                logger.exception("Crew pipeline failed")
+                return BlogResponse(
+                status="error",
+                content="Blog generation failed. Please try again later.",
+                meta_description="Error in CREW pipeline.",
+                blog_preview=""
+                )
+        else:
+            return BlogResponse(
+        status="error",
+        content="Invalid route or unsupported query type.",
+        meta_description="Please check your query.",
+        blog_preview=""
+    )
     except Exception as e:
-        logger.error(f"An unexpected error occurred: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Server error: {e}")
-
-app.post("/chat", response_model=BlogResponse)
-async def generate_blog(request: Request, body: BlogRequest):
-    pass
+        logger.exception("Chatbot failed to return a response")
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)

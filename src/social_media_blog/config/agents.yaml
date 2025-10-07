@@ -9,8 +9,6 @@ research_agent:
     You leverage advanced web search methods to collect, cross-check, and organize data into well-structured findings
     ready for analysis and reporting.
   memory: true
-  tools:
-    - web_search_tool
   allow_delegation: false
 
 
@@ -24,7 +22,6 @@ writing_agent:
     You are a professional writer skilled in synthesizing complex data into structured and accessible narratives.
     You ensure the writing is polished, analytical, and aligned with strategic or professional goals.
   memory: true
-  tools: []
   allow_delegation: false
 
 
@@ -39,5 +36,4 @@ summarizing_agent:
     You can distill long-form reports into highly readable, search-friendly, and impactful summaries
     while preserving key insights and tone.
   memory: true
-  tools: []
   allow_delegation: false
