@@ -1,8 +1,7 @@
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
-from .crew import SocialMediaBlog
-from .chat_models import *
+from chat_models import *
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
@@ -11,15 +10,13 @@ from contextlib import asynccontextmanager
 from langchain.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from db_handler import logger
-from tools import get_llm
 import json
 import re
+from crew import SocialMediaBlog,llm
+
 
 load_dotenv()
 
-logger = logger()
-llm = get_llm()
-# Initializing the rate limiter
 limiter = Limiter(key_func=get_remote_address, default_limits=["5/minute"])
 
 @asynccontextmanager
@@ -183,7 +180,7 @@ def extract_title(content: str) -> str:
 
 def create_meta_description(content: str) -> str:
     """Create SEO meta description from content"""
-    # Remove markdown and get clean text
+    # Remove markdownDirectEd-api and get clean text
     clean_content = re.sub(r'[#*`]', '', content)
     sentences = clean_content.split('.')
     
@@ -214,7 +211,7 @@ def create_preview(content: str) -> str:
 
 @app.get("/")
 async def root():
-    return {"message": "Loaded successfully!"}
+    return {"message": "Loaded successfully! Visit /docs"}
 
 @app.post("/api/generate-blog", response_model=BlogResponse)
 @limiter.limit("5/minute")
@@ -272,6 +269,9 @@ async def generate_blog(request: Request, body: BlogRequest):
         logger.error(f"An unexpected error occurred: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Server error: {e}")
 
+app.post("/chat", response_model=BlogResponse)
+async def generate_blog(request: Request, body: BlogRequest):
+    pass
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
