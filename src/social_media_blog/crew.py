@@ -32,49 +32,6 @@ except Exception as e:
 
 
 @tool
-def google_trends_tool(query: str) -> str:
-    """
-    Analyzes Google Trends for a given query and returns related topics and queries.
-    This helps identify current search trends and popular sub-topics.
-    The output is a detailed report on related searches and trending topics.
-    """
-    try:
-        pytrends = TrendReq(hl='en-US', tz=360)
-        
-        # Build payload with the user's query
-        pytrends.build_payload([query], cat=0, timeframe='today 3-m', geo='US')
-        
-        # Get the top 5 related queries
-        related_queries = pytrends.related_queries().get(query, {})
-        top_queries = related_queries.get('top', pd.DataFrame()).head(5)
-        
-        # Get the top 5 related topics
-        related_topics = pytrends.related_topics().get(query, {})
-        top_topics = related_topics.get('top', pd.DataFrame()).head(5)
-        
-        result_str = f"Google Trends Analysis for '{query}' (Past 3 months, US):\n\n"
-        
-        if not top_queries.empty:
-            result_str += "Top 5 Related Queries:\n"
-            result_str += '\n'.join([f"- {row['query']} (Score: {row['value']})" for index, row in top_queries.iterrows()])
-        else:
-            result_str += "No related queries found.\n"
-        
-        if not top_topics.empty:
-            result_str += "\n\nTop 5 Related Topics:\n"
-            result_str += '\n'.join([f"- {row['topic_title']} (Type: {row['topic_type']}, Score: {row['value']})" for index, row in top_topics.iterrows()])
-        else:
-            result_str += "No related topics found.\n"
-        
-        logger.info(f"Google Trends Tool: Found related queries and topics for '{query}'")
-        return result_str
-        
-    except Exception as e:
-        logger.error(f"Google Trends Tool failed: {e}", exc_info=True)
-        return "Failed to fetch Google Trends data. Please proceed with general knowledge."
-
-
-@tool
 def web_search_tool(query: str, max_results: int = 5) -> str:
     """A tool to search the web for current information."""
     try:
@@ -167,72 +124,55 @@ class SocialMediaBlog():
         self.tasks: List[Task] = []
 
     @agent
-    def trend_hunter(self) -> Agent:
+    def research_agent(self) -> Agent:
         return Agent(
-            config=self.agents_config['trend_hunter'],
+            config=self.agents_config["research_agent"],
             tools=[web_search_tool],
             verbose=True,
             llm=llm
         )
 
     @agent
-    def editor_agent(self) -> Agent:
+    def writing_agent(self) -> Agent:
         return Agent(
-            config=self.agents_config['editor_agent'], 
-            tools=[web_search_tool, rag_tool],
+            config=self.agents_config["writing_agent"],
             verbose=True,
             llm=llm
         )
 
     @agent
-    def writer_agent(self) -> Agent:
+    def summarizing_agent(self) -> Agent:
         return Agent(
-            config=self.agents_config['writer_agent'],
+            config=self.agents_config["summarizing_agent"],
             verbose=True,
             llm=llm
-        )
-
-    @agent
-    def summarizer_agent(self) -> Agent:
-        return Agent(
-            config=self.agents_config['summarizer_agent'],
-            verbose=True,
-            llm=llm
-        )
-    
-    @task
-    def trend_hunting_task(self) -> Task:
-        return Task(
-            config=self.tasks_config['trend_hunting_task'],
-            agent=self.trend_hunter(),
-            run_mode=Process.concurrent
         )
 
     @task
     def research_task(self) -> Task:
         return Task(
-            config=self.tasks_config['research_task'],
-            agent=self.editor_agent(),
-            run_mode=Process.concurrent
-
+            config=self.tasks_config["research_task"],
+            agent=self.research_agent(),
+            run_mode=Process.independent
         )
-
+    
     @task
-    def reporting_task(self) -> Task:
+    def writing_task(self) -> Task:
         return Task(
-            config=self.tasks_config['reporting_task'],
-            agent=self.writer_agent(),
-            depends_on=[self.trend_hunting_task(), self.research_task()],
-            run_mode=Process.concurrent
+            config=self.tasks_config["writing_task"],
+            agent=self.writing_agent(),
+            depends_on=[self.research_task()],
+            run_mode=Process.sequential
         )
 
     @task
     def summarizing_task(self) -> Task:
         return Task(
-            config=self.tasks_config['summarizing_task'],
-            agent=self.summarizer_agent(),
-            output_pydantic_model = BlogOutput,
-            depends_on=[self.reporting_task()]
+            config=self.tasks_config["summarizing_task"],
+            agent=self.summarizing_agent(),
+            output_pydantic_model=BlogOutput,
+            depends_on=[self.writing_task()],
+            run_mode=Process.sequential
         )
 
     @crew
