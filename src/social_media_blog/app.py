@@ -14,6 +14,7 @@ from .db_handler import logger
 from typing import Union
 from .crew import SocialMediaBlog,llm, knowledge_base
 import os
+import json
 
 
 load_dotenv()
@@ -163,13 +164,22 @@ async def generate_blog(request: Request, body: BlogRequest):
                 crew_instance = request.app.state.crew_instance
                 response =  crew_instance.kickoff(inputs={'topic': body.topic, "tone": body.tone})
                 logger.info("CREW Pipeline completed successfully")
-                return BlogResponse(
-                    status="success",
-                    title=response.title,
-                    content=response.blog_post,
-                    meta_description=response.meta_description,
-                    blog_preview=response.blog_preview
-                )
+                try: 
+                    result = json.loads(response.raw)
+                    title = result.get("title", "Untitled")
+                    content = result.get("blog_post", "")
+                    meta_description = result.get("meta_description", "")
+                    blog_preview = result.get("blog_preview", "")
+                    
+                    return BlogResponse(
+                        status="success",
+                        title=title,
+                        content=content,
+                        meta_description=meta_description,
+                        blog_preview=blog_preview
+                    )
+                except Exception as e:
+                    logger.exception("Failed to wrangle Crewai's output")
             except Exception as e:
                 logger.exception("Crew pipeline failed")
                 return BlogResponse(

@@ -22,17 +22,18 @@ import requests
 load_dotenv()
 knowledge_base = get_knowledge_base()
 
-try:
-    logger.info("Connecting to Gemini LLM")
-    llm = LLM(
-            model="gemini/gemini-1.5-flash",
+def get_llm():
+    try:
+        return LLM(
+            model="gemini/gemini-2.5-pro",
             api_key=os.getenv("GOOGLE_API_KEY"),
             temperature=0.5
         )
-    logger.info("Successfully connected to Gemini AI model")
-except Exception as e:
-    logger.exception(f"Failed to connect to Gemini AI model... : {e}")
+    except Exception as e:
+        logger.error(f"Failed to connect to Gemini... : {e}")
+        raise ValueError(f"Failed to connect to Gemini")
 
+llm = get_llm()
 
 @tool
 def web_search_tool(query: str, max_results: int = 5) -> str:
