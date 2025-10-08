@@ -1,4 +1,4 @@
-from crewai import Agent, Crew, Process, Task
+from crewai import Agent, Crew, Process, Task, LLM
 from crewai.project import CrewBase, agent, crew, task
 from crewai.agents.agent_builder.base_agent import BaseAgent
 from crewai.tools import tool
@@ -12,6 +12,7 @@ from dotenv import load_dotenv
 import pandas as pd
 from pathlib import Path
 from langchain_groq import ChatGroq
+from langchain_google_genai import ChatGoogleGenerativeAI
 from .db_handler import logger, get_knowledge_base
 from .chat_models import BlogOutput
 import os
@@ -22,16 +23,15 @@ load_dotenv()
 knowledge_base = get_knowledge_base()
 
 try:
-    logger.info("Connecting to Groq LLM")
-    llm = ChatGroq(
-        model=os.getenv("GROQ_MODEL"),
-        api_key=os.getenv("GROQ_API_KEY"),
-        temperature=0.7,
-        reasoning_effort="medium"
-    )
-    logger.info("Successfully connected to Groq AI model")
+    logger.info("Connecting to Gemini LLM")
+    llm = LLM(
+            model="gemini/gemini-1.5-flash",
+            api_key=os.getenv("GOOGLE_API_KEY"),
+            temperature=0.5
+        )
+    logger.info("Successfully connected to Gemini AI model")
 except Exception as e:
-    logger.exception(f"Failed to connect to Groq AI model... : {e}")
+    logger.exception(f"Failed to connect to Gemini AI model... : {e}")
 
 
 @tool
@@ -184,4 +184,5 @@ class SocialMediaBlog():
             tasks=self.tasks,
             process=Process.sequential,
             verbose=True,
+            llm=llm
         )

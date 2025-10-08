@@ -8,10 +8,12 @@ from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 from contextlib import asynccontextmanager
 from langchain.prompts import ChatPromptTemplate
+from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.output_parsers import StrOutputParser
 from .db_handler import logger
 from typing import Union
 from .crew import SocialMediaBlog,llm, knowledge_base
+import os
 
 
 load_dotenv()
@@ -55,6 +57,16 @@ app.add_middleware(
     allow_headers=["*"]
 )
 
+def get_langchain_llm():
+    if os.getenv("GOOGLE_API_KEY"):
+        logger.info("Using ChatGoogleGenerativeAI for LangChain components.")
+        return ChatGoogleGenerativeAI(model="gemini-2.5-pro", google_api_key=os.getenv("GOOGLE_API_KEY"), temperature=0.5)
+    else:
+        logger.error("No valid API key found for Gemini.")
+        raise ValueError("GOOGLE_API_KEY not found.")
+
+langchain_llm = get_langchain_llm()
+
 async def route_query(user_request: str) -> str:
     """Route queries intelligently between CrewAI (health) or LangChain (general chat)."""
     router_prompt = ChatPromptTemplate.from_template(
@@ -68,7 +80,7 @@ async def route_query(user_request: str) -> str:
         Response:
         """
     )
-    router_chain = router_prompt | llm | StrOutputParser()
+    router_chain = router_prompt | langchain_llm | StrOutputParser()
 
     try:
         decision = await router_chain.ainvoke({"query": user_request})
@@ -122,7 +134,7 @@ Do **not** repeat long intros or greetings in every reply.
         logger.exception(f"Retriever failed")
         context = ""
 
-    chain = chat_prompt_template | llm | StrOutputParser()
+    chain = chat_prompt_template | langchain_llm | StrOutputParser()
 
     return chain.invoke({
         "user_query": user_query,
@@ -162,6 +174,7 @@ async def generate_blog(request: Request, body: BlogRequest):
                 logger.exception("Crew pipeline failed")
                 return BlogResponse(
                 status="error",
+                title="Generation Failed",
                 content="Blog generation failed. Please try again later.",
                 meta_description="Error in CREW pipeline.",
                 blog_preview=""
