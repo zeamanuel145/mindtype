@@ -1,65 +1,58 @@
-trend_hunting_task:
-  description: >
-    Identify the latest trends and popular discussions surrounding the blog topic.
-    You MUST use the provided Google Trends tool to uncover the most recent and
-    relevant search queries and related topics. Supplement this data with a general
-    web search if necessary. Focus on discovering sub-topics and questions people
-    are actively asking right now.
-  expected_output: >
-    A comprehensive report on current trends, related queries, and popular topics
-    for the blog topic, ready for the Writer to use as a basis for the blog post.
-  agent: trend_hunter
-
 research_task:
   description: >
-    **Role:** EditorAgent
-    **Objective:** Validate and expand on the initial trend findings to create a comprehensive research foundation.
-    **Tone:** Authoritative, factual, and strategic.
-    **Guidelines:**
-    - Critically review the trends provided by the TrendHunterAgent.
-    - Use your tools to perform in-depth research on each trend.
-    - Find key statistics, significant developments, audience behavior data, and notable influencers or brands related to the trends.
-    - Ensure all information is current and factually correct.
-    - Synthesize the findings into a structured, bulleted list.
+    **Role:** ResearchAgent  
+    **Objective:** Conduct deep, accurate, and current research on the specified {topic}.  
+    **Behavior:** Use the web_search_tool to gather verified, authoritative, and up-to-date insights from credible online sources.  
+    **Guidelines:** 
+      - Explore the topic comprehensively using web research.
+      - Collect factual data, statistics, current trends, and expert perspectives.
+      - Cross-check information for credibility and relevance.
+      - Structure your findings into a clear, organized summary for the next stage.
   expected_output: >
-    A list of 10 bullet points summarizing the most relevant and interesting findings about {topic}.
-  agent: editor_agent
+    A detailed, structured research report containing verified insights, key statistics, and important context about the {topic}, ready for the WritingAgent.
+  agent: research_agent
+  run_mode: independent 
 
-reporting_task:
+
+writing_task:
   description: >
-    **Role:** WriterAgent
-    **Objective:** Transform the research findings into a professional, engaging, and well-structured report for a social media blog.
-    **Tone:** Clear, engaging, and professional.
-    **Guidelines:**
-    - Start with a compelling introduction that hooks the reader.
-    - Use the bullet points from the EditorAgent to create full, detailed sections.
-    - Structure the report with clear headings and subheadings.
-    - Ensure smooth transitions between sections to create a cohesive narrative.
-    - Write in markdown, but avoid code blocks. The final format should be easy for a human to read and publish.
+    **Role:** WritingAgent  
+    **Objective:** Convert the ResearchAgent’s findings into a professional, well-structured, and engaging long-form report.  
+    **Tone:** {tone}.  
+    **Guidelines:** 
+      - Use the research report as your foundation.
+      - Organize the information logically with clear headings and subheadings.
+      - Add smooth transitions, explanations, and concise commentary.
+      - Maintain a factual and polished writing style.
+      - Format in clean markdown (no code blocks).
   expected_output: >
-    A well-organized report with an intro and full sections for each key point.
-    Format in markdown (no code blocks).
-  agent: writer_agent
+    A cohesive, professional, and detailed report with a clear introduction, organized sections, and supporting explanations — formatted in markdown.
+  agent: writing_agent
+  depends_on:
+    - research_task
+  run_mode: sequential
+
 
 summarizing_task:
   description: >
-    **Role:** SummarizerAgent
-    **Objective:** Create a complete, structured blog post with all required components from the previous research and reporting.
-    **Tone:** Professional, engaging, and SEO-optimized.
-    **Guidelines:**
-    - Read the entire report provided by the WriterAgent.
-    - Create a compelling blog post title that captures the essence of the content.
-    - Use the report content as your main blog post, ensuring it's well-structured and engaging.
-    - Generate an SEO-optimized meta description (150-160 characters) that summarizes the key value proposition.
-    - Create a brief blog preview (2-3 sentences) that would entice readers to read the full post.
-    - You MUST return your response as a JSON object with exactly these four fields: title, blog_post, meta_description, blog_preview.
-    - Do not include any additional text outside the JSON structure.
+    **Role:** SummarizingAgent  
+    **Objective:** Refine, summarize, and optimize the final report for SEO and publication.  
+    **Tone:** {tone}.  
+    **Guidelines:** 
+      - Review the full report from the WritingAgent.
+      - Craft an SEO-friendly **blog title**.
+      - Generate a well-written **meta_description** (150–160 characters) summarizing the post’s main value.
+      - Write a short **blog_preview** (2–3 sentences) to attract readers.
+      - Return ONLY a valid JSON object with the following fields: title, blog_post, meta_description, blog_preview.
   expected_output: >
     Return ONLY a valid JSON object with these exact fields:
     {
       "title": "Compelling blog post title",
       "blog_post": "Complete blog post content (well-formatted and engaging)",
-      "meta_description": "SEO meta description (150-160 characters)",
-      "blog_preview": "Brief preview/teaser (2-3 sentences)"
+      "meta_description": "SEO meta description (150–160 characters)",
+      "blog_preview": "Brief preview/teaser (2–3 sentences)"
     }
-  agent: summarizer_agent
+  agent: summarizing_agent
+  depends_on:
+    - writing_task
+  run_mode: sequential
