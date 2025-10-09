@@ -2,69 +2,93 @@ from crewai import Agent, Crew, Process, Task, LLM
 from crewai.project import CrewBase, agent, crew, task
 from crewai.agents.agent_builder.base_agent import BaseAgent
 from crewai.tools import tool
-from pytrends.request import TrendReq
-import pandas as pd
-from langchain_community.tools import DuckDuckGoSearchRun
 from typing import List
-from content.pinecone_setup import knowledge_base
+from dotenv import load_dotenv
+from ddgs import DDGS
+from bs4 import BeautifulSoup
+from crewai.tools import tool
+from dotenv import load_dotenv
+import pandas as pd
+from pathlib import Path
+from langchain_groq import ChatGroq
+from langchain_google_genai import ChatGoogleGenerativeAI
+from .db_handler import logger, get_knowledge_base
 from .chat_models import BlogOutput
 import os
-import logging
+import requests
 
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-)
-logger = logging.getLogger(__name__)
+
+load_dotenv()
+knowledge_base = get_knowledge_base()
+
+def get_llm():
+    try:
+        return LLM(
+            model="gemini/gemini-2.5-pro",
+            api_key=os.getenv("GOOGLE_API_KEY"),
+            temperature=0.5
+        )
+    except Exception as e:
+        logger.error(f"Failed to connect to Gemini... : {e}")
+        raise ValueError(f"Failed to connect to Gemini")
+
+llm = get_llm()
 
 @tool
-def google_trends_tool(query: str) -> str:
-    """
-    Analyzes Google Trends for a given query and returns related topics and queries.
-    This helps identify current search trends and popular sub-topics.
-    The output is a detailed report on related searches and trending topics.
-    """
+def web_search_tool(query: str, max_results: int = 5) -> str:
+    """A tool to search the web for current information."""
     try:
-        pytrends = TrendReq(hl='en-US', tz=360)
+        logger.info(f"Web Search Tool: searching for: {query}")
+        results_txt = ""
+
+        with DDGS() as ddgs:
+            results = [r for r in ddgs.text(query=query, max_results=max_results)]
         
-        # Build payload with the user's query
-        pytrends.build_payload([query], cat=0, timeframe='today 3-m', geo='US')
+        if not results:
+            return "No results found for your query"
         
-        # Get the top 5 related queries
-        related_queries = pytrends.related_queries().get(query, {})
-        top_queries = related_queries.get('top', pd.DataFrame()).head(5)
+        logger.info(f"Web search Tool: Retrieved {len(results)} search results.")
+        articles = []
+
+        for i, result in enumerate(results, 1):
+            title = result.get("title", "No title")
+            link = result.get("href", None)
+            snippet = result.get("body", "")
+            if not link:
+                continue
+
+            logger.info(f"Fetching article {i}: {title} ({link})")
+
+            try:
+                response = requests.get(link, timeout=8)
+                soup = BeautifulSoup(response.text, "html.parser")
+
+                paragraphs = [p.get_text() for p in soup.find_all("p")]
+                article_text = "\n".join(paragraphs[:-1])
+
+                articles.append(f"### {title}\n🔗 {link}\n\n{article_text}\n")
+            except Exception as e:
+                logger.warning(f"Skipping {link}: {e}")
+                continue
+
+        if not articles:
+            return "No readable articles found from the search results."
         
-        # Get the top 5 related topics
-        related_topics = pytrends.related_topics().get(query, {})
-        top_topics = related_topics.get('top', pd.DataFrame()).head(5)
-        
-        result_str = f"Google Trends Analysis for '{query}' (Past 3 months, US):\n\n"
-        
-        if not top_queries.empty:
-            result_str += "Top 5 Related Queries:\n"
-            result_str += '\n'.join([f"- {row['query']} (Score: {row['value']})" for index, row in top_queries.iterrows()])
-        else:
-            result_str += "No related queries found.\n"
-        
-        if not top_topics.empty:
-            result_str += "\n\nTop 5 Related Topics:\n"
-            result_str += '\n'.join([f"- {row['topic_title']} (Type: {row['topic_type']}, Score: {row['value']})" for index, row in top_topics.iterrows()])
-        else:
-            result_str += "No related topics found.\n"
-        
-        logging.info(f"Google Trends Tool: Found related queries and topics for '{query}'")
-        return result_str
-        
+        results_text = "\n\n---\n\n".join(articles)
+        logger.info("Web Search Tool: Successfully extracted article content.")
+        return results_text
+
     except Exception as e:
-        logging.error(f"Google Trends Tool failed: {e}", exc_info=True)
-        return "Failed to fetch Google Trends data. Please proceed with general knowledge."
+        logger.exception(f"Web Search Tool failed: {e}")
+        return f"Error searching the web: {e}"
+
 
 @tool
 def rag_tool(query: str) -> str:
     """A tool to retrieve relevant context from the Pinecone knowledge base."""
     try:
         logger.info(f"RAG Tool: Searching for documents related to the topic: '{query}'...")
-        retrieved_docs = knowledge_base.similarity_search(query, k=5)
+        retrieved_docs = knowledge_base.get_relevant_documents(query)
         context = "\n\n".join([doc.page_content for doc in retrieved_docs])
         
         if not context:
@@ -77,42 +101,6 @@ def rag_tool(query: str) -> str:
         logger.error(f"RAG Tool: Error during retrieval - {e}", exc_info=True)
         return f"Error retrieving context from knowledge base: {e}. Please proceed without."
 
-@tool
-def web_search_tool(query: str) -> str:
-    """A tool to search the web for current information."""
-    try:
-        logger.info(f"Web Search Tool: Searching for: '{query}'...")
-        search_tool_instance = DuckDuckGoSearchRun()
-        results = search_tool_instance.run(query)
-        logger.info(f"Web Search Tool: Successfully retrieved search results.")
-        return results
-    except Exception as e:
-        logger.error(f"Web Search Tool: Error during search - {e}", exc_info=True)
-        return f"Error searching the web: {e}. Please proceed without web search results."
-
-@tool
-def duckduckgo_tool_func(query: str) -> str:
-    """A wrapper around DuckDuckGoSearchRun for use with crewai.project."""
-    try:
-        logger.info(f"DuckDuckGo Tool: Searching for: '{query}'...")
-        search_tool_instance = DuckDuckGoSearchRun()
-        results = search_tool_instance.run(query)
-        logger.info(f"DuckDuckGo Tool: Successfully retrieved search results.")
-        return results
-    except Exception as e:
-        logger.error(f"DuckDuckGo Tool: Error during search - {e}", exc_info=True)
-        return f"Error searching the web: {e}. Please proceed without web search results."
-
-def get_llm():
-    try:
-        return LLM(
-            model="gemini/gemini-1.5-flash",
-            api_key=os.getenv("GOOGLE_API_KEY"),
-            temperature=0.5
-        )
-    except Exception as e:
-        logger.error(f"Failed to connect to Gemini... : {e}")
-        raise ValueError(f"Failed to connect to Gemini")
 
 @CrewBase
 class SocialMediaBlog():
@@ -121,8 +109,8 @@ class SocialMediaBlog():
         import os
         import yaml
 
-        base_dir = os.path.dirname(__file__)
-        config_dir = os.path.join(base_dir, "config")
+        base_dir = Path(__file__).resolve().parent
+        config_dir = str(base_dir/"config")
 
         try:
             with open(os.path.join(config_dir, "agents.yaml"), "r") as f:
@@ -131,75 +119,62 @@ class SocialMediaBlog():
                 self.tasks_config = yaml.safe_load(f)
             logger.info("Configuration files loaded successfully")
         except Exception as e:
-            logging.warning("Failed to load config files: %s", e)
+            logger.warning("Failed to load config files: %s", e)
             self.agents_config = {}
             self.tasks_config = {}
 
         self.agents: List[BaseAgent] = []
         self.tasks: List[Task] = []
-    
+
     @agent
-    def trend_hunter(self) -> Agent:
+    def research_agent(self) -> Agent:
         return Agent(
-            config=self.agents_config['trend_hunter'], # type: ignore[index]
-            tools=[web_search_tool,duckduckgo_tool_func,google_trends_tool],
+            config=self.agents_config["research_agent"],
+            tools=[web_search_tool],
             verbose=True,
-            llm=get_llm()
+            llm=llm
         )
 
     @agent
-    def editor_agent(self) -> Agent:
+    def writing_agent(self) -> Agent:
         return Agent(
-            config=self.agents_config['editor_agent'], # type: ignore[index]
-            tools=[duckduckgo_tool_func],
+            config=self.agents_config["writing_agent"],
             verbose=True,
-            llm=get_llm()
+            llm=llm
         )
 
     @agent
-    def writer_agent(self) -> Agent:
+    def summarizing_agent(self) -> Agent:
         return Agent(
-            config=self.agents_config['writer_agent'], # type: ignore[index]
-            tools=[rag_tool],
+            config=self.agents_config["summarizing_agent"],
             verbose=True,
-            llm=get_llm()
-        )
-
-    @agent
-    def summarizer_agent(self) -> Agent:
-        return Agent(
-            config=self.agents_config['summarizer_agent'], # type: ignore[index]
-            verbose=True,
-            llm=get_llm()
-        )
-    
-    @task
-    def trend_hunting_task(self) -> Task:
-        return Task(
-            config=self.tasks_config['trend_hunting_task'], # type: ignore[index]
-            agent=self.trend_hunter()
+            llm=llm
         )
 
     @task
     def research_task(self) -> Task:
         return Task(
-            config=self.tasks_config['research_task'], # type: ignore[index]
-            agent=self.editor_agent()
-        )
-
+            config=self.tasks_config["research_task"],
+            agent=self.research_agent()
+                            )
+    
     @task
-    def reporting_task(self) -> Task:
+    def writing_task(self) -> Task:
         return Task(
-            config=self.tasks_config['reporting_task'], # type: ignore[index]
-            agent=self.writer_agent()
+            config=self.tasks_config["writing_task"],
+            agent=self.writing_agent(),
+            depends_on=[self.research_task()],
+            run_mode=Process.sequential
         )
 
     @task
     def summarizing_task(self) -> Task:
         return Task(
-            config=self.tasks_config['summarizing_task'], # type: ignore[index]
-            agent=self.summarizer_agent(),
-            output_pydantic_model = BlogOutput,
+            config=self.tasks_config["summarizing_task"],
+            agent=self.summarizing_agent(),
+            output_pydantic_model=BlogOutput,
+            depends_on=[self.writing_task()],
+            run_mode=Process.sequential
         )
 
     @crew
@@ -209,4 +184,5 @@ class SocialMediaBlog():
             tasks=self.tasks,
             process=Process.sequential,
             verbose=True,
+            llm=llm
         )

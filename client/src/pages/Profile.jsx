@@ -222,7 +222,7 @@ const Profile = () => {
                       name="firstName"
                       value={formData.firstName}
                       onChange={handleInputChange}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                      className="w-full px-4 py-3 text-black border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
                       placeholder="Enter your first name"
                       required
                     />
@@ -244,7 +244,7 @@ const Profile = () => {
                       name="lastName"
                       value={formData.lastName}
                       onChange={handleInputChange}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                      className="w-full px-4 py-3 text-black border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
                       placeholder="Enter your last name"
                       required
                     />
@@ -262,7 +262,7 @@ const Profile = () => {
                   <Mail className="w-4 h-4 mr-2" />
                   Email Address
                 </label>
-                <div className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg text-gray-500">
+                <div className="w-full text-black px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg">
                   {user.email}
                   <span className="ml-2 text-xs">(Cannot be changed)</span>
                 </div>
@@ -274,7 +274,7 @@ const Profile = () => {
                   <User className="w-4 h-4 mr-2" />
                   Username
                 </label>
-                <div className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg text-gray-500">
+                <div className="w-full text-black px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg not-even:text-black">
                   @{user.username}
                   <span className="ml-2 text-xs">(Cannot be changed)</span>
                 </div>
@@ -292,7 +292,7 @@ const Profile = () => {
                     value={formData.bio}
                     onChange={handleInputChange}
                     rows={4}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all resize-none"
+                    className="w-full text-black px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all resize-none"
                     placeholder="Tell us about yourself..."
                     maxLength={500}
                   />

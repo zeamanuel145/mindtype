@@ -312,7 +312,7 @@ const PostDetail = () => {
                       onChange={(e) => setNewComment(e.target.value)}
                       placeholder="Write a comment..."
                       rows={3}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all resize-none"
+                      className="w-full px-4 py-3 text-black border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all resize-none"
                     />
                     <div className="mt-3 flex justify-end">
                       <button
@@ -359,13 +359,13 @@ const PostDetail = () => {
                       className="w-8 h-8 rounded-full object-cover flex-shrink-0"
                     />
                     <div className="flex-1">
-                      <div className="bg-gray-100 rounded-lg p-3">
+                      <div className="bg-glass rounded-lg p-3">
                         <p className="font-semibold text-sm text-gray-900 mb-1">
                           {comment.user?.firstName && comment.user?.lastName
                             ? `${comment.user.firstName} ${comment.user.lastName}`
                             : comment.user?.username || "Anonymous"}
                         </p>
-                        <p className="text-gray-700 text-sm leading-relaxed">{comment.content}</p>
+                        <p className="text-black text-sm leading-relaxed">{comment.content}</p>
                       </div>
                       <p className="text-xs text-gray-500 mt-1">
                         {comment.createdAt ? new Date(comment.createdAt).toLocaleDateString() : "Just now"}
