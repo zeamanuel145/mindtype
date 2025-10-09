@@ -8,6 +8,7 @@ from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 from contextlib import asynccontextmanager
 from langchain.prompts import ChatPromptTemplate
+from langchain_groq import ChatGroq
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.output_parsers import StrOutputParser
 from .db_handler import logger
@@ -46,7 +47,7 @@ origins = [
     "http://localhost",
     "http://localhost:3000",     
     "http://127.0.0.1:3000",
-    "http://localhost:8000",
+    "http://localhost:5173",
     "http://127.0.0.1:8000",
 ]
 
@@ -65,6 +66,13 @@ def get_langchain_llm():
     else:
         logger.error("No valid API key found for Gemini.")
         raise ValueError("GOOGLE_API_KEY not found.")
+    
+general_chat_llm = ChatGroq(
+    model=os.getenv("GROQ_MODEL"),
+    api_key=os.getenv("GROQ_API_KEY"),
+    temperature=0.7
+)
+
 
 langchain_llm = get_langchain_llm()
 
@@ -81,7 +89,7 @@ async def route_query(user_request: str) -> str:
         Response:
         """
     )
-    router_chain = router_prompt | langchain_llm | StrOutputParser()
+    router_chain = router_prompt | general_chat_llm| StrOutputParser()
 
     try:
         decision = await router_chain.ainvoke({"query": user_request})
@@ -112,7 +120,7 @@ Do **not** repeat long intros or greetings in every reply.
 
 ### 🚨 Handling Off-topic:
 - If question is unrelated → Answer briefly, but politely warn in a warm but professional method. For example:
-  *"Note: I can mainly assist with Mindtype, our content, or company info."* Alternate the way you produce this message so that it does not appear as a hardcoded  message but instead a real-time chatbot or a human.
+  *"Note: I can mainly assist with Mindtype, our content, or company info. But you can only inform them perdiodically, not after every single chat. For example you warn the first time then a subtle warning the third time followed bu another warning the 5th"* Alternate the way you produce this message so that it does not appear as a hardcoded  message but instead a real-time chatbot or a human.
 
 ---
 
@@ -135,7 +143,7 @@ Do **not** repeat long intros or greetings in every reply.
         logger.exception(f"Retriever failed")
         context = ""
 
-    chain = chat_prompt_template | langchain_llm | StrOutputParser()
+    chain = chat_prompt_template | general_chat_llm| StrOutputParser()
 
     return chain.invoke({
         "user_query": user_query,
