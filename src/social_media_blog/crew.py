@@ -6,7 +6,6 @@ from typing import List
 from dotenv import load_dotenv
 from ddgs import DDGS
 from bs4 import BeautifulSoup
-from pytrends.request import TrendReq
 from crewai.tools import tool
 from dotenv import load_dotenv
 import pandas as pd

@@ -1,10 +1,10 @@
-from langchain.text_splitter import RecursiveCharacterTextSplitter
+# from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.document_loaders import PyPDFLoader, DirectoryLoader
 from langchain_cohere import CohereEmbeddings
 from langchain_pinecone import PineconeVectorStore
-from pinecone import Pinecone, ServerlessSpec
+# from pinecone import Pinecone, ServerlessSpec
 from dotenv import load_dotenv
-from pathlib import Path
+# from pathlib import Path
 import logging
 import os
 
