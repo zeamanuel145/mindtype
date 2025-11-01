@@ -44,8 +44,13 @@ summarizing_task:
       - Generate a well-written **meta_description** (150–160 characters) summarizing the post’s main value.
       - Write a short **blog_preview** (2–3 sentences) to attract readers.
       - Return ONLY a valid JSON object with the following fields: title, blog_post, meta_description, blog_preview.
+    **CRITICAL FORMATTING REQUIREMENT:**
+      - You MUST return ONLY a valid JSON object without any additional text, explanations, or markdown formatting.
+      - DO NOT wrap the output in ```json or any other code blocks.
+      - DO NOT add any text before or after the JSON.
+      - The response should be parseable directly by json.loads().
   expected_output: >
-    Return ONLY a valid JSON object with these exact fields:
+    PURE JSON OUTPUT ONLY - no markdown, no code blocks, no additional text:
     {
       "title": "Compelling blog post title",
       "blog_post": "Complete blog post content (well-formatted and engaging)",

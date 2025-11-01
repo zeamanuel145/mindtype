@@ -158,23 +158,64 @@ async def root():
 @app.post("/chat", response_model=Union[BlogResponse, ChatResponse])
 @limiter.limit("5/minute")
 async def generate_blog(request: Request, body: BlogRequest):
-    route_decision = await route_query(user_request=body.topic
+    route_decision = await route_query(user_request=body.topic)
+    
+    # Initialize a default error response for robust fallback
+    error_response = BlogResponse(
+        status="error",
+        title="Generation Failed",
+        content="Blog generation failed due to an unexpected error. Please try again later.",
+        meta_description="Error in processing the request.",
+        blog_preview=""
     )
+
     try:
         if route_decision == "langchain":
             logger.info("Routing conversation to Langchain...")
             response_text = assistant(body.topic)
             if response_text:
                 logger.info("Chatbot returned an answer!")
-            return ChatResponse(response=response_text)
+                return ChatResponse(response=response_text)
+            else:
+                logger.warning("Langchain returned no response.")
+                return ChatResponse(response="Sorry, I couldn't generate a response.")
+                
         elif route_decision == "crewai":
             logger.info("Routing conversation to Crewai")
+            crew_instance = request.app.state.crew_instance
+            
             try:
-                crew_instance = request.app.state.crew_instance
-                response =  crew_instance.kickoff(inputs={'topic': body.topic, "tone": body.tone})
+                # 1. Execute CrewAI pipeline
+                response = crew_instance.kickoff(inputs={'topic': body.topic, "tone": body.tone})
+                raw_output = response.raw
                 logger.info("CREW Pipeline completed successfully")
+
+                # --- START: Robust JSON Wrangle Logic (The fix!) ---
+                cleaned_output = raw_output.strip()
+                logger.debug(f"Raw output size: {len(raw_output)}. Cleaned output size: {len(cleaned_output)}")
+                
+                # Check for and remove common markdown code fences (```json ... ```)
+                if cleaned_output.startswith("```"):
+                    logger.debug("Attempting to clean markdown fences.")
+                    try:
+                        # Split after the first line (e.g., ```json) and before the last line (e.g., ```)
+                        # This handles multiple lines of output
+                        cleaned_output = cleaned_output.split('\n', 1)[1].rsplit('\n', 1)[0].strip()
+                    except IndexError:
+                        pass
+                
+                # 2. Basic validation check after cleaning
+                if not cleaned_output or not (cleaned_output.startswith('{') and cleaned_output.endswith('}')):
+                    logger.error(f"CrewAI output is empty or not a valid JSON structure after cleaning: {repr(cleaned_output[:50])}...")
+                    error_response.content = "CrewAI output was not valid JSON. Check agent prompts."
+                    error_response.meta_description = "Invalid JSON structure."
+                    return error_response
+
+                # 3. Attempt JSON loading on the cleaned string
                 try: 
-                    result = json.loads(response.raw)
+                    result = json.loads(cleaned_output)
+                    
+                    # 4. Extract fields from the resulting dictionary
                     title = result.get("title", "Untitled")
                     content = result.get("blog_post", "")
                     meta_description = result.get("meta_description", "")
@@ -187,26 +228,29 @@ async def generate_blog(request: Request, body: BlogRequest):
                         meta_description=meta_description,
                         blog_preview=blog_preview
                     )
-                except Exception as e:
-                    logger.exception("Failed to wrangle Crewai's output")
+                except json.JSONDecodeError as e:
+                    logger.exception(f"JSON Decode Error after cleaning. Problematic output: {repr(cleaned_output)}")
+                    error_response.content = "Failed to parse final output as JSON. Check agent output structure."
+                    error_response.meta_description = "JSON decoding failed."
+                    return error_response
+                # --- END: Robust JSON Wrangle Logic ---
+
             except Exception as e:
-                logger.exception("Crew pipeline failed")
-                return BlogResponse(
-                status="error",
-                title="Generation Failed",
-                content="Blog generation failed. Please try again later.",
-                meta_description="Error in CREW pipeline.",
-                blog_preview=""
-                )
+                logger.exception("Crew pipeline failed during execution.")
+                error_response.content = "Blog generation failed. An internal CrewAI error occurred."
+                error_response.meta_description = "CrewAI execution error."
+                return error_response
+
         else:
-            return BlogResponse(
-        status="error",
-        content="Invalid route or unsupported query type.",
-        meta_description="Please check your query.",
-        blog_preview=""
-    )
+            # Handle invalid route decision
+            error_response.content = "Invalid route or unsupported query type."
+            error_response.meta_description = "Routing decision failed."
+            return error_response
+            
     except Exception as e:
-        logger.exception("Chatbot failed to return a response")
+        logger.exception("Top-level exception in generate_blog")
+        return error_response
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
