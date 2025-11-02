@@ -82,7 +82,7 @@ async def route_query(user_request: str) -> str:
         """
         You are a routing expert. Decide whether to route the user query to 
         'crewai' (for content generation) or 'langchain' (for general chat).
-        
+        Beforemaking the decision, thoroughly analyze the user's input. If they directly mention to generate a blog, in whatever way, then you know definitely the route is crewai. If the user's input is unclear, ask it is definitely langchain. General queries for example, what mindtype does and what type of content they generate, that is a langchain query. Intelligently analyze the user's request to determine clearly and without a doubt, what route is to be taken.
         Respond with one word only: crewai or langchain.
         
         User: "{query}"
@@ -109,6 +109,7 @@ Keep replies **brief, realistic, and chat-like** — like a responsive support a
 Do **not** repeat long intros or greetings in every reply.
 
 ---
+If a user's question or input is unclear, handle it intelligently by either asking for more information or mention that you did not understand them. Be intelligent.
 
 ### 📘 Knowledge Base (for reference only, do not dump unless asked):
 - **Focus:** High-quality blog posts, insights, and content creation.
