@@ -163,7 +163,7 @@ async def generate_blog(request: Request, body: BlogRequest):
     # Initialize a default error response for robust fallback
     error_response = BlogResponse(
         status="error",
-        title="Generation Failed",
+        title="Blog Generation Failed",
         content="Blog generation failed due to an unexpected error. Please try again later.",
         meta_description="Error in processing the request.",
         blog_preview=""
