@@ -133,14 +133,14 @@ function formatStructuredResponse(data) {
             </div>
         `
   }
-
-  // Content Row
-  if (data.blog_post) {
-    const preview = data.blog_post.substring(0, 300)
+  
+  if (data.content) {
+    const formattedContent = data.content.replace(/\n/g, "<br>");
+    
     html += `
-            <div class="response-row">
+            <div class="response-row content-full">
                 <div class="response-row-label">Content</div>
-                <div class="response-row-content">${escapeHtml(preview)}${data.blog_post.length > 300 ? "..." : ""}</div>
+                <div class="response-row-content blog-content">${formattedContent}</div> 
             </div>
         `
   }
@@ -155,7 +155,7 @@ function formatStructuredResponse(data) {
         `
   }
 
-  // Preview Row
+   // Preview Row
   if (data.blog_preview) {
     html += `
             <div class="response-row">
@@ -164,10 +164,10 @@ function formatStructuredResponse(data) {
             </div>
         `
   }
+ 
 
   return html
 }
-
 // Send to API
 async function sendToAPI(text, endpoint = "chat") {
   setLoading(true)
@@ -192,7 +192,7 @@ async function sendToAPI(text, endpoint = "chat") {
     removeLoadingIndicator()
 
     // Check if structured response
-    if (data.title || data.blog_post) {
+    if (data.title || data.content) {
       const html = formatStructuredResponse(data)
       addBotMessage(html)
     } else {

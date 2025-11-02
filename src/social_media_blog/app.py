@@ -92,6 +92,7 @@ async def route_query(user_request: str) -> str:
     )
     router_chain = router_prompt | general_chat_llm| StrOutputParser()
 
+
     try:
         decision = await router_chain.ainvoke({"query": user_request})
         return decision.strip().lower()
@@ -131,6 +132,7 @@ Do **not** repeat long intros or greetings in every reply.
 - **Formatting:** Use simple lists/emojis if it aids clarity.
 
 ---
+
     Context: {context}
 👤 User: {user_query}
 💬 Chatbot:

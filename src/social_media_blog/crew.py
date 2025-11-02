@@ -25,7 +25,8 @@ def get_llm():
     try:
         return LLM(
             model="gemini/gemini-2.5-pro",
-            api_key=os.getenv("GOOGLE_API_KEY"),
+            # api_key=os.getenv("GOOGLE_API_KEY"),
+            api_key="AIzaSyAeNQQt8dB6Clhntx_TY6uXRdUJ31QXhPE",
             temperature=0.5
         )
     except Exception as e:
