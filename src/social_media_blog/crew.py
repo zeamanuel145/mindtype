@@ -10,8 +10,6 @@ from crewai.tools import tool
 from dotenv import load_dotenv
 import pandas as pd
 from pathlib import Path
-from langchain_groq import ChatGroq
-from langchain_google_genai import ChatGoogleGenerativeAI
 from .db_handler import logger, get_knowledge_base
 from .chat_models import BlogOutput
 import os
@@ -25,8 +23,7 @@ def get_llm():
     try:
         return LLM(
             model="gemini/gemini-2.5-pro",
-            # api_key=os.getenv("GOOGLE_API_KEY"),
-            api_key="AIzaSyAeNQQt8dB6Clhntx_TY6uXRdUJ31QXhPE",
+            api_key=os.getenv("GOOGLE_API_KEY"),
             temperature=0.5
         )
     except Exception as e:

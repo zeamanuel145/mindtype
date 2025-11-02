@@ -2,7 +2,7 @@
 services:
   social-media-blog:
     build: .
-    container_name: social-media-blog-api
+    container_name: mindtype-api
     env_file:
       - .env
     ports:
