@@ -33,9 +33,10 @@ def get_llm():
 llm = get_llm()
 
 @tool
-def web_search_tool(query: str, max_results: int = 5) -> str:
+def web_search_tool(query: str) -> str:
     """A tool to search the web for current information."""
     try:
+        max_results= 5
         logger.info(f"Web Search Tool: searching for: {query}")
         results_txt = ""
 

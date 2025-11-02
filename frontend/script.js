@@ -15,7 +15,7 @@ function init() {
   sendBtn.addEventListener("click", sendMessage)
   messageInput.addEventListener("keydown", handleKeyDown)
   askBtn.addEventListener("click", () => handleQuickAction("Tell me about MindType", "ask"))
-  generateBtn.addEventListener("click", () => handleQuickAction("Create a random blog post", "generate"))
+  generateBtn.addEventListener("click", () => handleQuickAction("Create a random blog post of your own liking.", "generate"))
 
   // Auto-resize textarea
   messageInput.addEventListener("input", () => {
