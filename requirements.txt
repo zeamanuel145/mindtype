@@ -1,5 +1,6 @@
 crewai
 crewai-tools
+crewai[google-genai]
 langchain
 langchain-pinecone
 langchain-groq
@@ -22,5 +23,3 @@ pandas
 beautifulsoup4
 requests
 starlette
-
-
