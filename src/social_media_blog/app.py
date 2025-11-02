@@ -17,7 +17,6 @@ from .crew import SocialMediaBlog,llm, knowledge_base
 import os
 import json
 
-
 load_dotenv()
 
 
