@@ -22,3 +22,4 @@ __pycache__/
 *.sw?
 node_modules/
 dist/
+trial.ipynb

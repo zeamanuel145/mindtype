@@ -30,3 +30,14 @@ class BlogResponse(BaseModel):
 
 class ChatResponse(BaseModel):
     response: str
+
+class LoginRequest(BaseModel):
+    email: str = Field(..., description="User's email address")
+    password: str = Field(..., description="User's password")
+    first_name: Optional[str] = Field(None,description="User's first name")
+    last_name: Optional[str] = Field(None,description="User's last name")
+
+class AccountResponse(BaseModel):
+    
+    email: str = Field(..., description="User's email address")
+    password: str = Field(..., description="User's password")

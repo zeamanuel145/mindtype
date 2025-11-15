@@ -11,6 +11,7 @@ from langchain.prompts import ChatPromptTemplate
 from langchain_groq import ChatGroq
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.output_parsers import StrOutputParser
+from supabase import create_client, Client
 from .db_handler import logger
 from typing import Union
 from .crew import SocialMediaBlog,llm, knowledge_base
@@ -21,6 +22,14 @@ load_dotenv()
 
 
 limiter = Limiter(key_func=get_remote_address, default_limits=["5/minute"])
+try:
+    supabase_url = os.getenv("SUPABASE_URL")
+    supabase_key = os.getenv("SUPABASE_KEY")
+    supabase: Client = create_client(supabase_url, supabase_key)
+    logger.info("Supabase client initialized successfully.")
+except Exception as e:
+    logger.error(f"Failed to initialize Supabase client: {e}")
+    supabase = None
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -246,6 +255,40 @@ async def generate_blog(request: Request, body: BlogRequest):
     except Exception as e:
         logger.exception("Top-level exception in generate_blog")
         return error_response
+    
+@app.post("/auth")
+@limiter.limit("20/minute")
+async def authenticate(request: Request, login: LoginRequest):
+    try:
+        
+        account = login.email
+        password = login.password
+        password = login.password
+        logger.info(f"Checking for user : {account}")
+        check = supabase.table("Users").select("email").eq("email", account).execute()
+        if account in check.data[0]["email"]:
+            logger.info("User exists, proceeding to login")
+        else:
+            new_account = True
+            logger.info("User does not exist, proceeding to create account")
+            try:
+                new_user = supabase.auth.sign_up({
+                    "email": account,
+                    "password": password
+                })
+                logger.info("Account created successfully")
+                supabase.table("Users").insert({"first_name":login.first_name,"last_name":login.last_name,"email":account}).execute()
+                logger.info("New user successfully added to database")
+            except Exception as e:
+                logger.error(f"Failed to create new user: {e}")
+                raise HTTPException(status_code=500, detail="Account creation failed.")
+            
+    except Exception as e:
+        logger.error(f"Authentication error: {e}")
+        raise HTTPException(status_code=500, detail="Authentication failed.")
+        
+        
+
 
 if __name__ == "__main__":
     import uvicorn
