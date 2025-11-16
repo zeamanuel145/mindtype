@@ -14,7 +14,8 @@ from langchain_core.output_parsers import StrOutputParser
 from supabase import create_client, Client
 from .db_handler import logger
 from typing import Union
-from .crew import SocialMediaBlog,llm, knowledge_base
+from .crew import SocialMediaBlog, knowledge_base
+from .auth import login, signup, logout
 import os
 import json
 
@@ -22,14 +23,7 @@ load_dotenv()
 
 
 limiter = Limiter(key_func=get_remote_address, default_limits=["5/minute"])
-try:
-    supabase_url = os.getenv("SUPABASE_URL")
-    supabase_key = os.getenv("SUPABASE_KEY")
-    supabase: Client = create_client(supabase_url, supabase_key)
-    logger.info("Supabase client initialized successfully.")
-except Exception as e:
-    logger.error(f"Failed to initialize Supabase client: {e}")
-    supabase = None
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -75,7 +69,6 @@ general_chat_llm = ChatGroq(
     api_key=os.getenv("GROQ_API_KEY"),
     temperature=0.7
 )
-
 
 langchain_llm = get_langchain_llm()
 
@@ -256,39 +249,43 @@ async def generate_blog(request: Request, body: BlogRequest):
         logger.exception("Top-level exception in generate_blog")
         return error_response
     
-@app.post("/auth")
+@app.post("/auth/login")
 @limiter.limit("20/minute")
-async def authenticate(request: Request, login: LoginRequest):
+async def authenticate_login(request: Request, body: LoginRequest):
     try:
-        
-        account = login.email
-        password = login.password
-        password = login.password
-        logger.info(f"Checking for user : {account}")
-        check = supabase.table("Users").select("email").eq("email", account).execute()
-        if account in check.data[0]["email"]:
-            logger.info("User exists, proceeding to login")
-        else:
-            new_account = True
-            logger.info("User does not exist, proceeding to create account")
-            try:
-                new_user = supabase.auth.sign_up({
-                    "email": account,
-                    "password": password
-                })
-                logger.info("Account created successfully")
-                supabase.table("Users").insert({"first_name":login.first_name,"last_name":login.last_name,"email":account}).execute()
-                logger.info("New user successfully added to database")
-            except Exception as e:
-                logger.error(f"Failed to create new user: {e}")
-                raise HTTPException(status_code=500, detail="Account creation failed.")
-            
+        logger.info("Logging in...")
+        login_response = await login(body)
+        return {"status": "success", "message": "User logged in successfully.","login_info": login_response}
+    except HTTPException as http_exc:
+        raise http_exc
     except Exception as e:
-        logger.error(f"Authentication error: {e}")
-        raise HTTPException(status_code=500, detail="Authentication failed.")
-        
-        
+        logger.exception("Login failed due to an unexpected error.")
+        raise HTTPException(status_code=500, detail="Login failed due to an internal error.")
+    
+@app.post("/auth/signup")
+@limiter.limit("20/minute")
+async def authenticate_signup(request: Request, body: LoginRequest):
+    try:
+        logger.info("Signing up...")
+        sign_up_response = await signup(body)
+        return {"status": "success", "message": "User signed up successfully.", "signup_info": sign_up_response}
+    except HTTPException as http_exc:
+        raise http_exc
+    except Exception as e:
+        logger.exception("Signup failed due to an unexpected error.")
+        raise HTTPException(status_code=500, detail="Signup failed due to an internal error.")
 
+@app.post("/auth/logout")
+@limiter.limit("20/minute")
+async def sign_out(request: Request):
+    try:
+        await logout()
+        return {"status": "success", "message": "User logged out successfully."}
+    except HTTPException as http_exc:
+        raise http_exc
+    except Exception as e:
+        logger.exception("Logout failed due to an unexpected error.")
+        raise HTTPException(status_code=500, detail="Logout failed due to an internal error.")
 
 if __name__ == "__main__":
     import uvicorn
